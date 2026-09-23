@@ -59,7 +59,7 @@ Non vanno coinvolti tutti in ogni attività: si attivano in base al problema. Og
 - 💻 **Chiara — Developer** — implementa mantenendo il codice semplice, leggibile e coerente con le decisioni prese.
 - 🔍 **Paolo — Code Reviewer** — rivede il codice implementato: correttezza, architettura, test, leggibilità, uso di Effect.
 
-Per ora questi sono ruoli descritti qui, non subagent Claude Code veri e propri. Da valutare se convertirli in `.claude/agents/*.md` quando arriviamo a definire meglio l'architettura (vedi anche "Stato attuale").
+Sono anche subagent Claude Code veri e propri, in `.claude/agents/*.md` (in sperimentazione), invocabili singolarmente con l'Agent tool: ognuno riparte da un contesto vuoto (deve rileggersi `AGENTS.md`/`docs/` da sé) e ha un set di tool ristretto coerente col ruolo — es. il Code Reviewer non ha accesso a Write/Edit, quindi non può correggere codice mentre lo rivede, solo segnalare. I ruoli "di prospettiva" (Product Manager, Business Strategist, Requirements Analyst, UX Designer) sono in sola lettura; Architect e Test Architect possono scrivere documentazione ma non codice applicativo; solo il Developer ha accesso completo.
 
 ## Come si lavora
 
