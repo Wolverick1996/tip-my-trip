@@ -115,6 +115,8 @@ const InMemoryTravelerRepositoryLive = Layer.succeed(
 
 Questa è la forma più semplice (`Layer.succeed`, consegna diretta di un'implementazione già pronta). `Layer` può fare anche di più — costruire un servizio che dipende da altri, che può fallire nella costruzione, o che gestisce un ciclo di vita (apertura/chiusura di una risorsa) — ma per il nostro port in-memory non serve: non c'è nessuna vera "costruzione" da fare.
 
+**Attenzione a non confondere due canali d'errore diversi, entrambi chiamati `E` ma in momenti diversi**: `Layer<ROut, E, RIn>` ha un proprio `E`, ma è l'errore che può capitare *mentre il Layer viene costruito/assemblato* — non gli errori che i metodi del servizio restituiscono quando vengono chiamati dopo. `Layer.succeed` consegna un oggetto già pronto, senza nessuna vera costruzione (niente connessioni, niente asincronia): non c'è nulla che possa fallire in quel momento, quindi il suo `E` è `never`, anche se `findById` può fallire con `TravelerNotFoundError` — quell'errore vive nel tipo del *metodo* (`Effect<Traveler, TravelerNotFoundError>`), non nel tipo del `Layer`. Sono due momenti distinti: costruzione del Layer (una volta, quando fornisci l'implementazione) vs. chiamata al metodo (ogni volta che il use case lo invoca). Se domani il repository diventasse un vero database, si userebbe `Layer.effect` invece di `Layer.succeed` (costruisce il servizio con un `Effect`, es. aprendo una connessione) — lì sì che il `Layer` potrebbe avere un `E` diverso da `never`.
+
 ## Come si usano insieme nel use case
 
 Il port `TravelerRepository` (definito sopra) si richiede con `yield*`, dentro un `Effect.gen`:

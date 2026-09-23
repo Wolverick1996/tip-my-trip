@@ -10,13 +10,15 @@ Stato reale del progetto, non un elenco di intenzioni. Aggiornata quando cambia 
 - `docs/decisions.md`: decisioni prese finora, con motivazione.
 - `docs/effect/`: concetti Effect necessari al vertical slice, spiegati da zero (basi, dipendenze, errori tipizzati, esecuzione).
 - Strategia di testing per il vertical slice discussa e approvata (non formalizzata in un doc a parte — guida per quando si scrive il codice, vedi `docs/effect/` e la sezione Testing di `AGENTS.md`).
+- `domain/`: entità (`City`, `Language`, `ExpertiseLevel`, `Traveler`, `Trip`), funzione pura `matchTravelers()` e i suoi test.
+- Port `TravelerRepository` (in `domain/`), errori tipizzati (`TravelerNotFoundError`), use case `findExpertsForCity` (in `use-cases/`), implementazione in-memory con dati mock (in `infrastructure/`) — con i rispettivi test (Layer di test per il use case, `Effect.flip` per gli errori tipizzati).
 
 ## In corso / prossimo
 
-**Primo vertical slice** (singola città → risultati → profilo → contatti): nessun codice applicativo ancora scritto. Da costruire, in ordine:
+**Primo vertical slice** (singola città → risultati → profilo → contatti): manca solo la UI.
 
-1. `domain/` — entità (`City`, `Language`, `ExpertiseLevel`, `Traveler`, `Trip`, `MatchResult`) e la funzione pura `matching()`, con i suoi test.
-2. Port del repository in `domain/`, use case in `use-cases/`, implementazione in-memory in `infrastructure/`.
+1. ~~`domain/` — entità e la funzione pura `matchTravelers()`, con i suoi test.~~ Fatto.
+2. ~~Port del repository in `domain/`, use case in `use-cases/`, implementazione in-memory in `infrastructure/`.~~ Fatto.
 3. UI minima: selezione città, lista risultati con breakdown, profilo esperto, contatti mock.
 
 ## Dopo il vertical slice (non ancora iniziato)
