@@ -48,16 +48,16 @@ Non è un esercizio di coverage. Prima di scrivere test, capire cosa vale la pen
 
 ## Agent del progetto
 
-Non vanno coinvolti tutti in ogni attività: si attivano in base al problema.
+Non vanno coinvolti tutti in ogni attività: si attivano in base al problema. Ognuno ha un'icona e un nome fissi, per rendere esplicito chi sta parlando quando dà un contributo specifico (domanda, osservazione, proposta): **icona Nome — contenuto**, es. "🎯 Giulia — Questo rientra nell'MVP o è scope creep?".
 
-- **Product Manager** — focus su problema, utenti, MVP; evita feature creep.
-- **Business Strategist** — valore del prodotto, modello, incentivi, assunzioni; utile nelle decisioni di prodotto.
-- **Requirements Analyst** — trasforma idee in requisiti concreti, individua ambiguità ed edge case.
-- **UX Designer** — user flow, interazioni e UI, tenendo conto di responsive e accessibilità.
-- **Architect** — dominio, struttura del progetto, Ports & Adapters, uso di Effect, dipendenze.
-- **Test Architect** — cosa vale la pena testare e come, soprattutto per dominio, use case ed Effect.
-- **Developer** — implementa mantenendo il codice semplice, leggibile e coerente con le decisioni prese.
-- **Code Reviewer** — rivede il codice implementato: correttezza, architettura, test, leggibilità, uso di Effect.
+- 🎯 **Giulia — Product Manager** — focus su problema, utenti, MVP; evita feature creep.
+- 📊 **Marco — Business Strategist** — valore del prodotto, modello, incentivi, assunzioni; utile nelle decisioni di prodotto.
+- 📋 **Sara — Requirements Analyst** — trasforma idee in requisiti concreti, individua ambiguità ed edge case.
+- 🎨 **Luca — UX Designer** — user flow, interazioni e UI, tenendo conto di responsive e accessibilità.
+- 🏗️ **Elena — Architect** — dominio, struttura del progetto, Ports & Adapters, uso di Effect, dipendenze.
+- 🧪 **Davide — Test Architect** — cosa vale la pena testare e come, soprattutto per dominio, use case ed Effect.
+- 💻 **Chiara — Developer** — implementa mantenendo il codice semplice, leggibile e coerente con le decisioni prese.
+- 🔍 **Paolo — Code Reviewer** — rivede il codice implementato: correttezza, architettura, test, leggibilità, uso di Effect.
 
 Per ora questi sono ruoli descritti qui, non subagent Claude Code veri e propri. Da valutare se convertirli in `.claude/agents/*.md` quando arriviamo a definire meglio l'architettura (vedi anche "Stato attuale").
 
@@ -89,8 +89,8 @@ Priorità: **capire → mantenere semplice → scrivere buon codice → imparare
 
 - `AGENTS.md` — questo file (`CLAUDE.md` punta qui).
 - `ROADMAP.md` — stato reale del progetto (da creare).
-- `docs/product-brief.md` — problema, utenti, MVP, user journey, dominio, matching (da creare).
-- `docs/decisions.md` — decisioni importanti e motivazione (da creare).
+- `docs/product-brief.md` — problema, utenti, MVP, user journey, dominio, matching.
+- `docs/decisions.md` — decisioni importanti e motivazione.
 - `docs/effect/` — solo i concetti Effect realmente usati (da creare).
 - `docs/master-prompt.md` — testo originale con cui è stato definito il progetto. Riferimento storico, non un documento vivo: se qualcosa qui diventa obsoleto si aggiornano gli altri documenti, non questo.
 
@@ -98,7 +98,7 @@ Breve e utile, non un esercizio di documentazione.
 
 ## Stato attuale
 
-Scaffold tecnico inizializzato: Next.js (App Router, Turbopack), TypeScript, Tailwind CSS, ESLint, Jest (via `next/jest`, con Testing Library) ed Effect installati e verificati (build, lint, test passano). Nessun codice applicativo ancora: dominio, architettura, strategia di matching, strategia di testing e product brief sono ancora da definire e da discutere prima di essere implementati.
+Scaffold tecnico inizializzato: Next.js (App Router, Turbopack), TypeScript, Tailwind CSS, ESLint, Jest (via `next/jest`, con Testing Library) ed Effect installati e verificati (build, lint, test passano), più CI GitHub Actions (lint/test paralleli, build a seguire). `docs/product-brief.md` e `docs/decisions.md` scritti: problema, utenti, dominio concettuale e algoritmo di matching definiti. Nessun codice applicativo ancora: struttura Ports & Adapters, strategia di testing e primo vertical slice sono i prossimi passi.
 
 **Da valutare più avanti**: convertire i ruoli in "Agent del progetto" in subagent Claude Code veri e propri (`.claude/agents/*.md`), invocabili con l'Agent tool invece di restare solo descrizioni testuali.
 
