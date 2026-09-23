@@ -4,13 +4,13 @@ Decisioni importanti e motivo per cui sono state prese. Non un changelog: solo s
 
 ## Un solo tipo `Traveler`, nessun ruolo separato
 
-Un utente registrato può sia comparire come esperto (se indica città conosciute) sia creare viaggi come coordinatore — non ci sono due tipi distinti (`Expert`/`TravelCoordinator`) nel dominio.
+Un utente registrato può sia comparire come esperto (se indica città conosciute) sia creare viaggi come organizzatore — non ci sono due tipi distinti (`Expert`/`TravelOrganizer`) nel dominio.
 
-**Perché**: coerente con "niente autenticazione reale" nell'MVP; nella realtà la stessa persona ricopre spesso entrambi i ruoli (un Travel Coordinator che a sua volta conosce bene alcune città); meno complessità per il prototipo.
+**Perché**: coerente con "niente autenticazione reale" nell'MVP; nella realtà la stessa persona ricopre spesso entrambi i ruoli (un Travel Organizer che a sua volta conosce bene alcune città); meno complessità per il prototipo.
 
 ## Lingua come filtro di esclusione, non come peso nel punteggio
 
-Un candidato che non condivide nessuna lingua con il coordinatore è escluso dai risultati, non semplicemente penalizzato nel punteggio.
+Un candidato che non condivide nessuna lingua con l'organizzatore è escluso dai risultati, non semplicemente penalizzato nel punteggio.
 
 **Perché**: un match linguisticamente impossibile non è utilizzabile a prescindere da quanto il candidato conosca le città — non ha senso dargli comunque un punteggio alto. Deciso dopo che la prima proposta (lingua come 20% del punteggio) non rifletteva questo vincolo.
 
@@ -40,3 +40,9 @@ src/
 I port vivono in `domain/`: è il dominio a dichiarare di cosa ha bisogno, in linguaggio suo — l'infrastruttura li implementa, non il contrario. `infrastructure/` è flat, senza sottocartelle: ne servirebbe una solo per separare più implementazioni (es. in-memory vs un vero backend), fuori scope per l'MVP — si introduce se e quando serve davvero.
 
 **Perché**: coerente con l'evitare astrazioni e nesting non necessari (niente factory, generic repository, interfacce per ogni cosa se non portano un vantaggio reale). `domain/` resta indipendente da React, Next.js e dalle implementazioni concrete, quindi testabile in isolamento.
+
+## File di test in `__tests__/` per cartella, non colocati né in un albero `test/` separato
+
+I test vivono in una sottocartella `__tests__/` dentro ogni cartella di codice sorgente, es. `src/domain/__tests__/matching.test.ts` per `src/domain/matching.ts`. Scartate sia la colocation diretta (`src/domain/matching.test.ts`), sia un albero `test/` parallelo a `src/`.
+
+**Perché**: preferenza per non avere file di test mescolati nella stessa lista di file dei sorgenti quando si guarda una cartella — scarta la colocation diretta. Un albero `test/` parallelo darebbe separazione totale ma introduce una seconda struttura di cartelle da tenere allineata a `src/`, complessità in più senza un vantaggio chiaro. `__tests__/` per cartella è la via di mezzo: separazione visiva senza duplicare la struttura altrove, ed è una convenzione nativa di Jest — nessuna modifica a `jest.config.mjs` necessaria.

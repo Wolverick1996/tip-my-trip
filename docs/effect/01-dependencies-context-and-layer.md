@@ -120,12 +120,12 @@ Questa è la forma più semplice (`Layer.succeed`, consegna diretta di un'implem
 Il port `TravelerRepository` (definito sopra) si richiede con `yield*`, dentro un `Effect.gen`:
 
 ```ts
-const findExpertsForCity = (cityId: CityId, coordinatorId: TravelerId) =>
+const findExpertsForCity = (cityId: CityId, organizerId: TravelerId) =>
   Effect.gen(function* () {
     const repo = yield* TravelerRepository   // "dammi qualcosa che soddisfi questo port"
-    const coordinator = yield* repo.findById(coordinatorId)
+    const organizer = yield* repo.findById(organizerId)
     const travelers = yield* repo.findAll()
-    return matching({ cityIds: [cityId] }, coordinator, travelers)   // la funzione pura di matching
+    return matchTravelers({ cityIds: [cityId] }, organizer, travelers)   // la funzione pura di matching
   })
 ```
 
@@ -135,7 +135,7 @@ Per eseguire il use case, si "fornisce" il `Layer` (`InMemoryTravelerRepositoryL
 
 ```ts
 Effect.provide(
-  findExpertsForCity(cityId, coordinatorId),
+  findExpertsForCity(cityId, organizerId),
   InMemoryTravelerRepositoryLive,
 )
 ```

@@ -11,7 +11,7 @@ Tutto ciò che si scrive con `Effect.gen`/`pipe` (use case, chiamate al port, ec
 ```ts
 const results = await Effect.runPromise(
   Effect.provide(
-    findExpertsForCity(cityId, coordinatorId),
+    findExpertsForCity(cityId, organizerId),
     InMemoryTravelerRepositoryLive,
   ),
 )

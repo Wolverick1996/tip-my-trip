@@ -1,6 +1,6 @@
 # Errori tipizzati: `Data.TaggedError`
 
-Usati per: i fallimenti prevedibili di un use case, es. "città non trovata" o "coordinatore non trovato" in `findExpertsForCity`.
+Usati per: i fallimenti prevedibili di un use case, es. "città non trovata" o "organizzatore non trovato" in `findExpertsForCity`.
 
 ## Il problema che risolvono
 

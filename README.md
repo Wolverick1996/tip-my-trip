@@ -10,7 +10,7 @@ Next.js · React · TypeScript · Effect · Jest · Tailwind CSS
 
 ## Stato del progetto
 
-Scaffold tecnico inizializzato (Next.js, TypeScript, Tailwind, Jest, Effect). Dominio, architettura e vertical slice sono ancora da costruire. Vedi [AGENTS.md](./AGENTS.md) per la visione del progetto e come si lavora qui.
+Vedi [ROADMAP.md](./ROADMAP.md). Per la visione del progetto e come si lavora qui, vedi [AGENTS.md](./AGENTS.md).
 
 ## Sviluppo
 

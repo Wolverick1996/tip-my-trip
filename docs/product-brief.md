@@ -11,7 +11,7 @@ Un solo tipo di account (`Traveler`, vedi [Dominio](#dominio)) copre due modi di
 - **Travel Coordinator** — deve organizzare un viaggio (per lavoro, come nel caso d'origine di un Travel Coordinator professionista, o per sé) e cerca persone che conoscono le destinazioni.
 - **Local/Esperto** — conosce una o più città a vari livelli e vuole essere trovato da chi organizza un viaggio lì.
 
-Non c'è distinzione di ruolo nel dominio: chiunque si registri può sia indicare le città che conosce (ed essere trovato come esperto), sia creare un viaggio (ed essere un coordinator). Vedi `docs/decisions.md` per la motivazione.
+Non c'è distinzione di ruolo nel dominio: chiunque si registri può sia indicare le città che conosce (ed essere trovato come esperto), sia creare un viaggio (ed essere un organizzatore). Vedi `docs/decisions.md` per la motivazione.
 
 ## MVP
 
@@ -39,8 +39,8 @@ Bozza concettuale (verrà raffinata quando l'Architect definisce i tipi concreti
 - **ExpertiseLevel** — `Base` | `Expert` | `Local`, ordinabile (Base < Expert < Local).
 - **City** — id, nome, paese, coordinate (per il pin sulla mappa mock).
 - **KnownCity** — città + livello, appartiene a un Traveler.
-- **Traveler** — id, nome, lingue parlate, città conosciute (`KnownCity[]`), contatti (whatsapp/email fittizi). Nessun ruolo separato: può comparire sia come esperto trovato da altri, sia come coordinatore che crea viaggi.
-- **Trip** — id, titolo, coordinatore (un Traveler), città da visitare.
+- **Traveler** — id, nome, lingue parlate, città conosciute (`KnownCity[]`), contatti (whatsapp/email fittizi). Nessun ruolo separato: può comparire sia come esperto trovato da altri, sia come organizzatore che crea viaggi.
+- **Trip** — id, titolo, organizzatore (`organizerId`, un Traveler), città da visitare.
 - **MatchResult** — un Traveler candidato + punteggio + breakdown esplicativo (vedi sotto).
 
 ## Matching
@@ -50,7 +50,7 @@ Il matching deve essere semplice e **spiegabile**: niente algoritmi sofisticati,
 **Filtri di esclusione** (un candidato che non li passa non compare nei risultati):
 
 1. Conosce almeno una città del viaggio.
-2. Condivide almeno una lingua con il coordinatore — un match linguisticamente impossibile non è un match valido, indipendentemente da quanto il candidato sia altrimenti competente.
+2. Condivide almeno una lingua con l'organizzatore — un match linguisticamente impossibile non è un match valido, indipendentemente da quanto il candidato sia altrimenti competente.
 
 **Punteggio 0-100** (solo su chi passa i filtri):
 
@@ -58,7 +58,7 @@ Il matching deve essere semplice e **spiegabile**: niente algoritmi sofisticati,
 - `expertiseScore` = (livello medio sulle città in comune, su scala 1-3 dove Base=1/Expert=2/Local=3, diviso 3) × 40
 - `totalScore` = coverageScore + expertiseScore, arrotondato
 
-**Esempio**: viaggio a Madrid + Barcellona + Siviglia. Un candidato conosce Madrid (Local) e Barcellona (Expert), parla italiano e inglese; il coordinatore parla italiano.
+**Esempio**: viaggio a Madrid + Barcellona + Siviglia. Un candidato conosce Madrid (Local) e Barcellona (Expert), parla italiano e inglese; l'organizzatore parla italiano.
 
 - Filtri: 2/3 città ✓, lingua italiana in comune ✓ → passa
 - coverageScore = (2/3) × 60 ≈ 40
