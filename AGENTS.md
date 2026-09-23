@@ -88,19 +88,17 @@ Priorità: **capire → mantenere semplice → scrivere buon codice → imparare
 ## Documentazione da mantenere
 
 - `AGENTS.md` — questo file (`CLAUDE.md` punta qui).
-- `ROADMAP.md` — stato reale del progetto (da creare).
+- `ROADMAP.md` — stato reale del progetto.
 - `docs/product-brief.md` — problema, utenti, MVP, user journey, dominio, matching.
 - `docs/decisions.md` — decisioni importanti e motivazione.
-- `docs/effect/` — solo i concetti Effect realmente usati (da creare).
+- `docs/effect/` — solo i concetti Effect realmente usati.
 - `docs/master-prompt.md` — testo originale con cui è stato definito il progetto. Riferimento storico, non un documento vivo: se qualcosa qui diventa obsoleto si aggiornano gli altri documenti, non questo.
 
 Breve e utile, non un esercizio di documentazione.
 
 ## Stato attuale
 
-Scaffold tecnico inizializzato: Next.js (App Router, Turbopack), TypeScript, Tailwind CSS, ESLint, Jest (via `next/jest`, con Testing Library) ed Effect installati e verificati (build, lint, test passano), più CI GitHub Actions (lint/test paralleli, build a seguire). `docs/product-brief.md` e `docs/decisions.md` scritti: problema, utenti, dominio concettuale e algoritmo di matching definiti. Nessun codice applicativo ancora: struttura Ports & Adapters, strategia di testing e primo vertical slice sono i prossimi passi.
-
-**Da valutare più avanti**: convertire i ruoli in "Agent del progetto" in subagent Claude Code veri e propri (`.claude/agents/*.md`), invocabili con l'Agent tool invece di restare solo descrizioni testuali.
+Vedi `ROADMAP.md`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

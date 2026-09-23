@@ -25,3 +25,18 @@ Dopo aver tolto la lingua dal punteggio (vedi sopra), i pesi sono stati ridistri
 Il primo vertical slice supporta solo la selezione di una singola città. La possibilità di selezionare più esperti per un viaggio (non un solo "vincitore") e di calcolare automaticamente quali città restano scoperte, riproponendo il matching su quelle, è un requisito reale ma viene costruita quando si affronta il Trip Planner multi-città.
 
 **Perché**: il vertical slice è scelto apposta per attraversare l'architettura senza costruire tutto il prodotto; l'algoritmo di matching sottostante non richiede modifiche per supportare questo caso (è lo stesso algoritmo applicato a un sottoinsieme di città) — solo la UI/stato di selezione va costruita più avanti.
+
+## Struttura delle cartelle: Ports & Adapters pragmatico
+
+```
+src/
+  app/                 # routing Next.js — Presentation
+  components/          # componenti React condivisi — Presentation
+  domain/              # entità, regole pure e i port (interfacce) dei repository
+  use-cases/           # un file per use case
+  infrastructure/      # implementazioni dei port + dati mock
+```
+
+I port vivono in `domain/`: è il dominio a dichiarare di cosa ha bisogno, in linguaggio suo — l'infrastruttura li implementa, non il contrario. `infrastructure/` è flat, senza sottocartelle: ne servirebbe una solo per separare più implementazioni (es. in-memory vs un vero backend), fuori scope per l'MVP — si introduce se e quando serve davvero.
+
+**Perché**: coerente con l'evitare astrazioni e nesting non necessari (niente factory, generic repository, interfacce per ogni cosa se non portano un vantaggio reale). `domain/` resta indipendente da React, Next.js e dalle implementazioni concrete, quindi testabile in isolamento.
