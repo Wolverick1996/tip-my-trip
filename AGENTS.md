@@ -98,6 +98,17 @@ Breve e utile, non un esercizio di documentazione.
 
 ## Stato attuale
 
-Repository appena inizializzato (solo bootstrap: `.gitignore`, `README.md`, `AGENTS.md`/`CLAUDE.md`). Dominio, architettura, strategia di matching, strategia di testing e scaffold del progetto sono ancora da definire e da discutere prima di essere implementati.
+Scaffold tecnico inizializzato: Next.js (App Router, Turbopack), TypeScript, Tailwind CSS, ESLint, Jest (via `next/jest`, con Testing Library) ed Effect installati e verificati (build, lint, test passano). Nessun codice applicativo ancora: dominio, architettura, strategia di matching, strategia di testing e product brief sono ancora da definire e da discutere prima di essere implementati.
 
 **Da valutare più avanti**: convertire i ruoli in "Agent del progetto" in subagent Claude Code veri e propri (`.claude/agents/*.md`), invocabili con l'Agent tool invece di restare solo descrizioni testuali.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
+

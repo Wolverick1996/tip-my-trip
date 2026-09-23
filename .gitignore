@@ -1,10 +1,13 @@
 node_modules/
-dist/
-dist-ssr/
-*.local
 
-.env
-.env.*
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
+.env*
 !.env.example
 
 .DS_Store

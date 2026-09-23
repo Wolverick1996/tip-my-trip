@@ -10,8 +10,14 @@ Next.js · React · TypeScript · Effect · Jest · Tailwind CSS
 
 ## Stato del progetto
 
-Repository appena inizializzato. Vedi [AGENTS.md](./AGENTS.md) per la visione del progetto e come si lavora qui.
+Scaffold tecnico inizializzato (Next.js, TypeScript, Tailwind, Jest, Effect). Dominio, architettura e vertical slice sono ancora da costruire. Vedi [AGENTS.md](./AGENTS.md) per la visione del progetto e come si lavora qui.
 
 ## Sviluppo
 
-Setup del progetto non ancora inizializzato.
+```
+npm install
+npm run dev     # dev server
+npm test        # test Jest
+npm run lint    # ESLint
+npm run build   # build di produzione
+```
