@@ -65,6 +65,8 @@ Non vanno coinvolti tutti in ogni attività: si attivano in base al problema. Og
 
 Sono anche subagent Claude Code veri e propri, in `.claude/agents/*.md` (in sperimentazione), invocabili singolarmente con l'Agent tool: ognuno riparte da un contesto vuoto (deve rileggersi `AGENTS.md`/`docs/` da sé) e ha un set di tool ristretto coerente col ruolo — es. il Code Reviewer non ha accesso a Write/Edit, quindi non può correggere codice mentre lo rivede, solo segnalare. I ruoli "di prospettiva" (Product Manager, Business Strategist, Requirements Analyst, UX Designer) sono in sola lettura; Architect e Test Architect possono scrivere documentazione ma non codice applicativo; solo il Developer ha accesso completo.
 
+Definire un subagent non lo fa attivare da solo: parte solo se lo si invoca esplicitamente con l'Agent tool. Quando una decisione rientra chiaramente nel dominio di uno di questi ruoli, invocarlo davvero (non solo discuterne direttamente con chi lavora sul progetto) — altrimenti restano definizioni sulla carta mai usate.
+
 ## Come si lavora
 
 Per ogni nuova funzionalità o modifica:
