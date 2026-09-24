@@ -10,7 +10,7 @@ export interface KnownCity {
 }
 
 export interface TravelerContact {
-  whatsapp?: string
+  whatsApp?: string
   email?: string
 }
 

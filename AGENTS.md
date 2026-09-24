@@ -38,6 +38,10 @@ Hexagonal Architecture / Ports & Adapters, ma pragmatica:
 
 Evitare factory, generic repository, interfacce per ogni cosa e dependency injection artificiale se non portano un vantaggio reale. Le scelte concrete di dominio e architettura vengono definite e documentate in `docs/decisions.md` prima di essere implementate, non date per scontate qui.
 
+## Commenti nel codice
+
+Ridotti al minimo: il codice dev'essere il più possibile autoesplicativo (nomi chiari, funzioni piccole), non spiegato a parole vicino a sé. Un commento si scrive solo per un perché non ovvio che il codice da solo non può dire (un vincolo nascosto, un workaround per un problema specifico, un comportamento che sorprenderebbe chi legge) — mai per descrivere cosa fa il codice o ripetere il nome di una variabile/funzione in prosa. Il "perché" di una decisione più ampia (una scelta architetturale, un trade-off, la motivazione dietro un'API scelta) va in `docs/decisions.md` o `docs/effect/`, non in un blocco di commento nel codice.
+
 ## Effect
 
 È la parte più importante del progetto dal punto di vista tecnico, e si parte da zero: non dare per scontato che l'utente conosca già pattern, best practice o modi corretti di strutturare un'applicazione Effect. Ogni volta che si introduce un concetto Effect significativo, va spiegato (cosa fa, perché lo usiamo lì, quale problema risolve, quale sarebbe l'alternativa in TypeScript normale) e documentato in `docs/effect/`. Effect va usato dove ha senso, non ovunque per forza.

@@ -20,6 +20,7 @@ const testLayer = Layer.succeed(
       id === testTraveler.id
         ? Effect.succeed(testTraveler)
         : Effect.fail(new TravelerNotFoundError({ travelerId: id })),
+    save: () => Effect.void,
   }),
 )
 

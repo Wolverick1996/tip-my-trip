@@ -7,5 +7,6 @@ export class TravelerRepository extends Context.Tag("TravelerRepository")<
   {
     readonly findAll: () => Effect.Effect<Traveler[]>
     readonly findById: (id: TravelerId) => Effect.Effect<Traveler, TravelerNotFoundError>
+    readonly save: (traveler: Traveler) => Effect.Effect<void>
   }
 >() {}

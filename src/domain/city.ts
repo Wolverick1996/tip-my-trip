@@ -8,8 +8,6 @@ export interface City {
   lng: number
 }
 
-// Dato di riferimento fisso per il prototipo (come LANGUAGES in language.ts):
-// nessuna vera logica di business o implementazione alternativa, quindi non passa da un port/repository.
 export const CITIES: City[] = [
   { id: "madrid", name: "Madrid", country: "Spagna", lat: 40.4168, lng: -3.7038 },
   { id: "barcellona", name: "Barcellona", country: "Spagna", lat: 41.3874, lng: 2.1686 },

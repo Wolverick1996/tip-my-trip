@@ -11,5 +11,9 @@ export const InMemoryTravelerRepositoryLive = Layer.succeed(
       const found = mockTravelers.find((traveler) => traveler.id === id)
       return found ? Effect.succeed(found) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
     },
+    save: (traveler) =>
+      Effect.sync(() => {
+        mockTravelers.push(traveler)
+      }),
   }),
 )

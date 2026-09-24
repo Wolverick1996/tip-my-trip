@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type { MatchResult } from "@/domain/matching"
-import { LANGUAGES } from "@/domain/language"
-import { cityName, levelLabel } from "./format"
+import { getLanguageName } from "@/domain/language"
+import { cityName, levelLabel } from "@/components/format"
 
 export function ExpertResultCard({ result }: { result: MatchResult }) {
   const { traveler, score, matchedCities, sharedLanguages } = result
@@ -10,7 +10,7 @@ export function ExpertResultCard({ result }: { result: MatchResult }) {
     .map((match) => `${levelLabel(match.level)} a ${cityName(match.cityId)}`)
     .join(", ")
 
-  const languagesText = sharedLanguages.map((code) => LANGUAGES[code]).join(", ")
+  const languagesText = sharedLanguages.map(getLanguageName).join(", ")
 
   return (
     <Link

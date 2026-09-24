@@ -1,10 +1,10 @@
 import { Effect, Either } from "effect"
 import Link from "next/link"
-import { ContactLinks } from "@/components/ContactLinks"
 import { cityName, levelLabel } from "@/components/format"
-import { LANGUAGES } from "@/domain/language"
+import { getLanguageName } from "@/domain/language"
 import { runtime } from "@/runtime"
 import { getTravelerProfile } from "@/use-cases/get-traveler-profile"
+import { ContactLinks } from "./ContactLinks"
 
 export default async function ExpertProfilePage({
   params,
@@ -38,7 +38,7 @@ export default async function ExpertProfilePage({
 
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
         Parla {traveler.languages.length > 0
-          ? traveler.languages.map((code) => LANGUAGES[code]).join(", ")
+          ? traveler.languages.map(getLanguageName).join(", ")
           : "—"}
       </p>
 

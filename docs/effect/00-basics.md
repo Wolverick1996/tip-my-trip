@@ -23,6 +23,15 @@ Effect.fail(new MyError())      // Effect<never, MyError, never> — fallimento 
 
 `never` nel tipo vuol dire "questo non può succedere" — `Effect.succeed(42)` non può mai fallire, quindi il suo canale errore è `never`.
 
+Altri due costruttori che si usano spesso:
+
+```ts
+Effect.sync(() => mockTravelers.push(traveler))   // Effect<void, never, never> — esegue un side effect sincrono
+Effect.void                                        // Effect<void, never, never> — non fa nulla, serve solo il "successo"
+```
+
+`Effect.sync(fn)` avvolge una funzione sincrona che fa qualcosa (una mutazione, una scrittura) e si assume non lanci eccezioni — usato ad esempio in `infrastructure/in-memory-traveler-repository.ts` per `save`, che deve solo aggiungere un elemento a un array, senza restituire un valore utile. `Effect.void` è una scorciatoia già pronta per "successo, nessun valore" — comodo nei test quando un metodo del port non serve davvero (es. un `save` finto che non deve fare nulla).
+
 ## Perché la sintassi sembra strana: `Effect.gen` e `yield*`
 
 TypeScript non ha una sintassi nativa per scrivere "fai questo, poi questo, poi questo" in modo generico per qualsiasi tipo di computazione. Ha però i **generatori** (`function*`/`yield`), pensati originariamente per altro, e Effect li riusa per ottenere lo stesso risultato: scrivere codice sequenziale che sembra imperativo, anche se sotto sotto sta componendo `Effect` immutabili.

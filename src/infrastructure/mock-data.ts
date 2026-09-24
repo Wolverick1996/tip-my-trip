@@ -2,7 +2,7 @@ import type { Traveler } from "@/domain/traveler"
 
 export const mockTravelers: Traveler[] = [
   {
-    id: "u-organizer",
+    id: "u-giulia",
     name: "Giulia Ferri",
     languages: ["it", "en"],
     knownCities: [],
@@ -16,14 +16,14 @@ export const mockTravelers: Traveler[] = [
       { cityId: "madrid", level: "local" },
       { cityId: "barcellona", level: "expert" },
     ],
-    contact: { whatsapp: "+34600111222", email: "elena.ruiz@example.com" },
+    contact: { whatsApp: "+34600111222", email: "elena.ruiz@example.com" },
   },
   {
     id: "u-marco",
     name: "Marco Bianchi",
     languages: ["it"],
     knownCities: [{ cityId: "madrid", level: "base" }],
-    contact: { whatsapp: "+39320111222" },
+    contact: { whatsApp: "+39320111222" },
   },
   {
     id: "u-ines",

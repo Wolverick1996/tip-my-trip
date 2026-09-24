@@ -17,7 +17,7 @@ const testTravelers: Traveler[] = [
     name: "Marco",
     languages: ["it", "en"],
     knownCities: [{ cityId: "madrid", level: "local" }],
-    contact: { whatsapp: "+391234" },
+    contact: { whatsApp: "+391234" },
   },
 ]
 
@@ -30,6 +30,10 @@ function testLayer(travelers: Traveler[]) {
         const found = travelers.find((traveler) => traveler.id === id)
         return found ? Effect.succeed(found) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
       },
+      save: (traveler) =>
+        Effect.sync(() => {
+          travelers.push(traveler)
+        }),
     }),
   )
 }
@@ -73,7 +77,7 @@ test("non propone l'organizzatore come match di se stesso, anche se conosce la c
       name: "Marco",
       languages: ["it", "en"],
       knownCities: [{ cityId: "madrid", level: "local" }],
-      contact: { whatsapp: "+391234" },
+      contact: { whatsApp: "+391234" },
     },
   ]
 

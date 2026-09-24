@@ -1,9 +1,15 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { CITIES } from "@/domain/city"
+import { WelcomeOnboarding } from "./WelcomeOnboarding"
 
 export default function Home() {
   return (
     <div className="mx-auto max-w-xl p-6">
+      <Suspense fallback={null}>
+        <WelcomeOnboarding />
+      </Suspense>
+
       <h1 className="text-xl font-semibold">TipMyTrip</h1>
       <p className="mt-2 text-zinc-600 dark:text-zinc-400">
         Seleziona una città per trovare chi la conosce davvero.

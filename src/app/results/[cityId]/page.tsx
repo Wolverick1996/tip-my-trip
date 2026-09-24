@@ -1,9 +1,9 @@
 import Link from "next/link"
-import { ExpertResultCard } from "@/components/ExpertResultCard"
-import { CURRENT_ORGANIZER_ID } from "@/current-organizer"
+import { getCurrentUserId } from "@/current-user"
 import { CITIES } from "@/domain/city"
 import { runtime } from "@/runtime"
 import { findExpertsForCity } from "@/use-cases/find-experts-for-city"
+import { ExpertResultCard } from "./ExpertResultCard"
 
 export default async function ResultsPage({
   params,
@@ -12,10 +12,9 @@ export default async function ResultsPage({
 }) {
   const { cityId } = await params
   const city = CITIES.find((candidate) => candidate.id === cityId)
+  const currentUserId = await getCurrentUserId()
 
-  const results = await runtime.runPromise(
-    findExpertsForCity(cityId, CURRENT_ORGANIZER_ID),
-  )
+  const results = await runtime.runPromise(findExpertsForCity(cityId, currentUserId))
 
   return (
     <div className="mx-auto max-w-xl p-6">

@@ -14,6 +14,7 @@ Ogni file raggruppa un **tema** (dipendenze, errori, esecuzione...), non una sin
 1. [Dipendenze: Context.Tag e Layer](./01-dependencies-context-and-layer.md) — come un use case dichiara di cosa ha bisogno, e chi glielo fornisce.
 2. [Errori tipizzati: Data.TaggedError](./02-typed-errors.md) — perché un fallimento compare nel tipo di una funzione invece che in un `throw`.
 3. [Eseguire un Effect: il confine con React](./03-running-effects.md) — dove il mondo Effect incontra Promise/React.
+4. [Validare dati: Schema](./04-validating-data-schema.md) — controllare che un dato rispetti un formato, es. email e numero WhatsApp in fase di registrazione.
 
 ## Fuori scope per ora
 

@@ -144,7 +144,7 @@ Effect.provide(
 
 ## Decisione per il progetto: solo `Layer`, niente Factory separata
 
-Il `Factory.ts` del pattern sopra fa lo stesso lavoro di `Layer`: è un composition root che decide quale implementazione concreta iniettare. Nel progetto usiamo `Layer` come unico meccanismo di wiring e non teniamo anche una Factory a parte: farebbero lo stesso lavoro due volte (vedi `docs/decisions.md`).
+Il `Factory.ts` del pattern sopra fa lo stesso lavoro di `Layer`: è un composition root che decide quale implementazione concreta iniettare. Nel progetto usiamo `Layer` come unico meccanismo di wiring e non teniamo anche una Factory a parte: farebbero lo stesso lavoro due volte.
 
 ## Nei test
 
