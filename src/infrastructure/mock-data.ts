@@ -1,5 +1,9 @@
 import type { City } from "../domain/city"
-import type { Traveler } from "../domain/traveler"
+import type { Traveler, TravelerId } from "../domain/traveler"
+
+// Nessuna registrazione/autenticazione nell'MVP: la UI usa questo traveler
+// fisso come "utente corrente" che crea i viaggi.
+export const CURRENT_ORGANIZER_ID: TravelerId = "u-organizer"
 
 export const mockCities: City[] = [
   { id: "madrid", name: "Madrid", country: "Spagna", lat: 40.4168, lng: -3.7038 },

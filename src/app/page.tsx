@@ -1,7 +1,26 @@
+import Link from "next/link"
+import { mockCities } from "@/infrastructure/mock-data"
+
 export default function Home() {
   return (
-    <div className="flex flex-1 items-center justify-center">
-      <p className="text-zinc-500 dark:text-zinc-400">TipMyTrip — in costruzione.</p>
+    <div className="mx-auto max-w-xl p-6">
+      <h1 className="text-xl font-semibold">TipMyTrip</h1>
+      <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+        Seleziona una città per trovare chi la conosce davvero.
+      </p>
+
+      <ul className="mt-6 flex flex-col gap-2">
+        {mockCities.map((city) => (
+          <li key={city.id}>
+            <Link
+              href={`/results/${city.id}`}
+              className="block rounded-lg border border-zinc-200 p-3 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+            >
+              {city.name} <span className="text-zinc-500">— {city.country}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
-  );
+  )
 }
