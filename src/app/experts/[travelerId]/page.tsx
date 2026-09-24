@@ -1,3 +1,4 @@
+import { Effect, Either } from "effect"
 import Link from "next/link"
 import { ContactLinks } from "@/components/ContactLinks"
 import { cityName, levelLabel } from "@/components/format"
@@ -12,7 +13,20 @@ export default async function ExpertProfilePage({
 }) {
   const { travelerId } = await params
 
-  const traveler = await runtime.runPromise(getTravelerProfile(travelerId))
+  const result = await runtime.runPromise(Effect.either(getTravelerProfile(travelerId)))
+
+  if (Either.isLeft(result)) {
+    return (
+      <div className="mx-auto max-w-xl p-6">
+        <Link href="/" className="text-sm text-zinc-500 hover:underline">
+          ← Torna alla selezione città
+        </Link>
+        <p className="mt-6 text-zinc-600 dark:text-zinc-400">Profilo non trovato.</p>
+      </div>
+    )
+  }
+
+  const traveler = result.right
 
   return (
     <div className="mx-auto max-w-xl p-6">

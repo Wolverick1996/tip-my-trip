@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ExpertResultCard } from "@/components/ExpertResultCard"
-import { CURRENT_ORGANIZER_ID, mockCities } from "@/infrastructure/mock-data"
+import { CURRENT_ORGANIZER_ID } from "@/current-organizer"
+import { CITIES } from "@/domain/city"
 import { runtime } from "@/runtime"
 import { findExpertsForCity } from "@/use-cases/find-experts-for-city"
 
@@ -10,7 +11,7 @@ export default async function ResultsPage({
   params: Promise<{ cityId: string }>
 }) {
   const { cityId } = await params
-  const city = mockCities.find((candidate) => candidate.id === cityId)
+  const city = CITIES.find((candidate) => candidate.id === cityId)
 
   const results = await runtime.runPromise(
     findExpertsForCity(cityId, CURRENT_ORGANIZER_ID),

@@ -1,7 +1,7 @@
 import { Effect } from "effect"
-import type { TravelerNotFoundError } from "../domain/errors"
-import type { Traveler, TravelerId } from "../domain/traveler"
-import { TravelerRepository } from "../domain/traveler-repository"
+import type { TravelerNotFoundError } from "@/domain/errors"
+import type { Traveler, TravelerId } from "@/domain/traveler"
+import { TravelerRepository } from "@/domain/traveler-repository"
 
 export const getTravelerProfile = (
   travelerId: TravelerId,

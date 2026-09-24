@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect"
-import { TravelerNotFoundError } from "../domain/errors"
-import { TravelerRepository } from "../domain/traveler-repository"
+import { TravelerNotFoundError } from "@/domain/errors"
+import { TravelerRepository } from "@/domain/traveler-repository"
 import { mockTravelers } from "./mock-data"
 
 export const InMemoryTravelerRepositoryLive = Layer.succeed(

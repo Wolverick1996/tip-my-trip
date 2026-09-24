@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { mockCities } from "@/infrastructure/mock-data"
+import { CITIES } from "@/domain/city"
 
 export default function Home() {
   return (
@@ -10,7 +10,7 @@ export default function Home() {
       </p>
 
       <ul className="mt-6 flex flex-col gap-2">
-        {mockCities.map((city) => (
+        {CITIES.map((city) => (
           <li key={city.id}>
             <Link
               href={`/results/${city.id}`}

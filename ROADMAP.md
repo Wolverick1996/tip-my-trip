@@ -13,6 +13,7 @@ Stato reale del progetto, non un elenco di intenzioni. Aggiornata quando cambia 
 - `domain/`: entità (`City`, `Language`, `ExpertiseLevel`, `Traveler`, `Trip`), funzione pura `matchTravelers()` e i suoi test.
 - Port `TravelerRepository` (in `domain/`), errori tipizzati (`TravelerNotFoundError`), use case `findExpertsForCity` (in `use-cases/`), implementazione in-memory con dati mock (in `infrastructure/`) — con i rispettivi test (Layer di test per il use case, `Effect.flip` per gli errori tipizzati).
 - **Primo vertical slice completo**: Home (selezione città) → `/results/[cityId]` (esperti trovati, con breakdown) → `/experts/[travelerId]` (profilo, città conosciute, contatti WhatsApp/email mock). Verificato end-to-end in browser (Playwright): nessun errore console/pagina, stato vuoto per città senza match, contatti mancanti non generano link rotti.
+- Review completa del vertical slice (use case, infrastructure, runtime, componenti, pagine): corretto un bug (l'organizzatore poteva comparire come match di se stesso), una violazione architetturale (`CITIES` spostato in `domain/` come dato statico, `CURRENT_ORGANIZER_ID` spostato in `src/current-organizer.ts` — la Presentation non importa più nulla direttamente da `infrastructure/`), e `/experts/[id]` con id inesistente ora mostra "Profilo non trovato" nella pagina (`Effect.either`), stesso principio dello stato vuoto dei risultati (vedi `docs/effect/02-typed-errors.md`).
 
 ## In corso / prossimo
 

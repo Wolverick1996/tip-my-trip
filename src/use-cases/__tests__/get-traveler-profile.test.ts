@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect"
-import { TravelerNotFoundError } from "../../domain/errors"
-import { TravelerRepository } from "../../domain/traveler-repository"
-import type { Traveler } from "../../domain/traveler"
+import { TravelerNotFoundError } from "@/domain/errors"
+import { TravelerRepository } from "@/domain/traveler-repository"
+import type { Traveler } from "@/domain/traveler"
 import { getTravelerProfile } from "../get-traveler-profile"
 
 const testTraveler: Traveler = {
