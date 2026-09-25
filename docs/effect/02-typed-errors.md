@@ -91,3 +91,31 @@ Un `Effect` che fallisce non lancia un'eccezione JS in senso classico: il fallim
 const error = await Effect.runPromise(Effect.flip(programChePuòFallire))
 expect(error._tag).toBe("CityNotFoundError")
 ```
+
+## Failure e defect: due tipi di fallimento
+
+Usato per: `GET /api/cities` (`src/app/api/cities/route.ts`), per distinguere una query non valida (risposta `400`) da un'eccezione imprevista (risposta `500`).
+
+Effect distingue due modi in cui un programma può fallire:
+
+- **Failure**: un errore *previsto*, che fa parte del contratto della funzione. Sta nel tipo, nel canale `E` di `Effect<A, E, R>`, e chi chiama deve gestirlo. È tutto quello visto finora in questo file: `TravelerNotFoundError`, `InvalidRegistrationError`, e anche il `ParseError` che `Schema.decode` produce quando un dato non rispetta lo schema (vedi `04-validating-data-schema.md`).
+- **Defect**: un errore *imprevisto*, cioè un bug o un guasto. Non sta nel tipo, perché nessuno lo ha dichiarato e il chiamante non può farci niente di sensato se non registrarlo e rispondere "qualcosa è andato storto". Per esempio un'eccezione lanciata dentro un `Effect.sync(() => ...)`, o un errore reso fatale di proposito con `Effect.die`.
+
+Esempio dalla route:
+
+```ts
+const searchCitiesByQuery = (rawQuery: string) =>
+  Effect.gen(function* () {
+    const query = yield* Schema.decode(CityQuery)(rawQuery) // può fallire con ParseError → failure
+    const cities = yield* Effect.sync(() => searchCities(query)) // se lancia → defect
+    return cities.map(({ id, name, country }): CitySearchResult => ({ id, name, country }))
+  })
+```
+
+Il tipo risultante è `Effect<CitySearchResult[], ParseError, never>`: nel canale d'errore compare solo `ParseError`. Il possibile `throw` dentro `searchCities` non c'è, ed è corretto così: non è un esito previsto della ricerca, è un bug.
+
+**Alternativa in TypeScript puro.** Un `if` per la validazione e un `try/catch` attorno alla ricerca. Funziona, ma la distinzione "previsto contro imprevisto" la fa solo chi legge il codice: nel `catch` arriva tutto insieme, tipizzato `unknown`. Con Effect la distinzione è nel tipo: i failure hanno un tipo preciso, i defect no.
+
+Come si traduce un fallimento, failure o defect, in una risposta HTTP è spiegato in `03-running-effects.md`, sezione "`runSyncExit` ed `Exit`".
+
+**Nota.** In questa route Effect è usato soprattutto per imparare questo pattern: la ricerca è sincrona e non ha dipendenze, e la versione con `if` e `try/catch` era sufficiente (vedi `docs/decisions.md`, voce "Ricerca città dal client"). Il pattern diventerà necessario quando la ricerca passerà a un database, con errori veri e asincroni.

@@ -1,8 +1,9 @@
 import { Effect, Either } from "effect"
 import Link from "next/link"
-import { cityName, levelLabel } from "@/components/format"
+import { expertiseLevelLabel } from "@/domain/expertise-level"
 import { getLanguageName } from "@/domain/language"
 import { runtime } from "@/runtime"
+import { getCity } from "@/use-cases/get-city"
 import { getTravelerProfile } from "@/use-cases/get-traveler-profile"
 import { ContactLinks } from "./ContactLinks"
 
@@ -18,7 +19,7 @@ export default async function ExpertProfilePage({
   if (Either.isLeft(result)) {
     return (
       <div className="mx-auto max-w-xl p-6">
-        <Link href="/" className="text-sm text-zinc-500 hover:underline">
+        <Link href="/my-world" className="text-sm text-zinc-500 hover:underline">
           ← Torna alla selezione città
         </Link>
         <p className="mt-6 text-zinc-600 dark:text-zinc-400">Profilo non trovato.</p>
@@ -30,7 +31,7 @@ export default async function ExpertProfilePage({
 
   return (
     <div className="mx-auto max-w-xl p-6">
-      <Link href="/" className="text-sm text-zinc-500 hover:underline">
+      <Link href="/my-world" className="text-sm text-zinc-500 hover:underline">
         ← Torna alla selezione città
       </Link>
 
@@ -47,11 +48,14 @@ export default async function ExpertProfilePage({
         <p className="text-sm text-zinc-500">Nessuna città indicata.</p>
       ) : (
         <ul className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          {traveler.knownCities.map((known) => (
-            <li key={known.cityId}>
-              {cityName(known.cityId)} — {levelLabel(known.level)}
-            </li>
-          ))}
+          {traveler.knownCities.map((known) => {
+            const cityName = getCity(known.cityId)?.name ?? known.cityId
+            return (
+              <li key={known.cityId}>
+                {cityName} — {expertiseLevelLabel(known.level)}
+              </li>
+            )
+          })}
         </ul>
       )}
 

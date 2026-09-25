@@ -42,6 +42,8 @@ Evitare factory, generic repository, interfacce per ogni cosa e dependency injec
 
 Ridotti al minimo: il codice dev'essere il più possibile autoesplicativo (nomi chiari, funzioni piccole), non spiegato a parole vicino a sé. Un commento si scrive solo per un perché non ovvio che il codice da solo non può dire (un vincolo nascosto, un workaround per un problema specifico, un comportamento che sorprenderebbe chi legge) — mai per descrivere cosa fa il codice o ripetere il nome di una variabile/funzione in prosa. Il "perché" di una decisione più ampia (una scelta architetturale, un trade-off, la motivazione dietro un'API scelta) va in `docs/decisions.md` o `docs/effect/`, non in un blocco di commento nel codice.
 
+Le scorciatoie che esistono solo perché questo è un prototipo, e che in produzione sparirebbero o cambierebbero (dati in memoria, sessione nel cookie…), si segnano con un commento JSDoc (`/** … */`) con il tag `@prototype`, così si trovano tutte con una ricerca e l'editor mostra la nota anche nell'hover, in ogni punto in cui il simbolo viene usato. Il tag dice in una riga cosa lo sostituirebbe in produzione, e va solo dove la scorciatoia è definita (la funzione, il file), non ripetuto a ogni punto in cui viene usata.
+
 ## Effect
 
 È la parte più importante del progetto dal punto di vista tecnico, e si parte da zero: non dare per scontato che l'utente conosca già pattern, best practice o modi corretti di strutturare un'applicazione Effect. Ogni volta che si introduce un concetto Effect significativo, va spiegato (cosa fa, perché lo usiamo lì, quale problema risolve, quale sarebbe l'alternativa in TypeScript normale) e documentato in `docs/effect/`. Effect va usato dove ha senso, non ovunque per forza.

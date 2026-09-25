@@ -2,7 +2,7 @@ import { Effect } from "effect"
 import type { Traveler } from "@/domain/traveler"
 import { TravelerRepository } from "@/domain/traveler-repository"
 import { InMemoryTravelerRepositoryLive } from "../in-memory-traveler-repository"
-import { mockTravelers } from "../mock-data"
+import { mockTravelers } from "../mock-travelers"
 
 test("findAll restituisce tutti i traveler mock", async () => {
   const program = Effect.gen(function* () {
@@ -58,4 +58,27 @@ test("save aggiunge un nuovo traveler, poi trovabile con findById", async () => 
   const result = await Effect.runPromise(Effect.provide(program, InMemoryTravelerRepositoryLive))
 
   expect(result).toEqual(newTraveler)
+})
+
+test("save su un id già esistente aggiorna il traveler invece di duplicarlo", async () => {
+  const original: Traveler = {
+    id: "test-upsert-id",
+    name: "Prima Del Cambio",
+    languages: ["it"],
+    knownCities: [],
+    contact: { email: "prima@example.com" },
+  }
+  const updated: Traveler = { ...original, name: "Dopo Il Cambio" }
+
+  const program = Effect.gen(function* () {
+    const repo = yield* TravelerRepository
+    yield* repo.save(original)
+    yield* repo.save(updated)
+    return yield* repo.findAll()
+  })
+
+  const result = await Effect.runPromise(Effect.provide(program, InMemoryTravelerRepositoryLive))
+
+  const matches = result.filter((traveler) => traveler.id === "test-upsert-id")
+  expect(matches).toEqual([updated])
 })

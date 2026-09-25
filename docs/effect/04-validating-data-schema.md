@@ -51,3 +51,28 @@ export const isSupportedLanguage = Schema.is(Schema.Literal(...Object.keys(LANGU
 isSupportedLanguage("it") // true — è tra le lingue con bandiera
 isSupportedLanguage("sw") // false — Swahili è un codice ISO 639-1 reale, ma non tra quelli che offriamo
 ```
+
+## Trasformare, non solo controllare: `Schema.Trim` e `Schema.decode`
+
+Usato per: la query di `GET /api/cities` (`src/app/api/cities/route.ts`).
+
+`Schema.is` risponde solo sì o no. Per la query di ricerca servono due cose in più: il valore **ripulito** (senza spazi attorno) e, se non va bene, un errore che entri nel canale d'errore di Effect, non un `boolean`.
+
+```ts
+const CityQuery = Schema.Trim.pipe(Schema.maxLength(100))
+```
+
+- `Schema.Trim` non è solo un filtro, è una **trasformazione**: quando decodifica una stringa la restituisce già senza spazi iniziali e finali. Uno schema può quindi cambiare il dato, non solo verificarlo.
+- `Schema.maxLength(100)` è un filtro, come `Schema.pattern`. Messo dopo la trasformazione, si applica alla stringa già ripulita: `"  lisb  "` viene prima ripulita in `"lisb"`, poi controllata.
+
+Per eseguire uno schema dentro un programma Effect si usa `Schema.decode`:
+
+```ts
+const query = yield* Schema.decode(CityQuery)(rawQuery)
+```
+
+`Schema.decode(schema)(valore)` restituisce un `Effect<string, ParseError>`: in caso di successo il valore trasformato, altrimenti un failure tipizzato `ParseError`, con il dettaglio di quale vincolo non è rispettato. Dentro `Effect.gen`, `yield*` estrae il valore, oppure interrompe il programma propagando il `ParseError`, come qualunque altro errore tipizzato (vedi `02-typed-errors.md`).
+
+**Quando `is` e quando `decode`.**
+- `Schema.is` basta quando serve un controllo sì o no dentro un `if`, e il messaggio d'errore lo si scrive a mano, come in `registerTraveler`.
+- `Schema.decode` serve quando si vuole il valore trasformato, oppure quando il fallimento deve entrare nel flusso di Effect.

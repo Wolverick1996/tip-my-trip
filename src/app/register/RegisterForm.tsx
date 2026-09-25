@@ -22,7 +22,7 @@ export function RegisterForm() {
 
   useEffect(() => {
     if (state.success) {
-      router.replace("/?onboarding=1")
+      router.replace("/my-world?onboarding=1")
     }
   }, [state.success, router])
 

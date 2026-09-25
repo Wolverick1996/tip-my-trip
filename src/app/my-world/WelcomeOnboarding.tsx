@@ -22,7 +22,7 @@ export function WelcomeOnboarding() {
   return (
     <dialog
       ref={ref}
-      onClose={() => router.replace("/")}
+      onClose={() => router.replace("/my-world")}
       aria-labelledby="onboarding-title"
       className="m-auto w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-lg backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-900"
     >

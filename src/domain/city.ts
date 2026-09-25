@@ -4,13 +4,29 @@ export interface City {
   id: CityId
   name: string
   country: string
+  population: number
   lat: number
   lng: number
 }
 
-export const CITIES: City[] = [
-  { id: "madrid", name: "Madrid", country: "Spagna", lat: 40.4168, lng: -3.7038 },
-  { id: "barcellona", name: "Barcellona", country: "Spagna", lat: 41.3874, lng: 2.1686 },
-  { id: "lisbona", name: "Lisbona", country: "Portogallo", lat: 38.7223, lng: -9.1393 },
-  { id: "parigi", name: "Parigi", country: "Francia", lat: 48.8566, lng: 2.3522 },
-]
+const MIN_QUERY_LENGTH = 2
+const MAX_RESULTS = 10
+
+function normalize(value: string): string {
+  return value
+    .normalize("NFD") // separa le lettere dagli accenti: "ü" → "u" + dieresi combinante
+    .replace(/[\u0300-\u036f]/g, "") // rimuove i segni diacritici combinanti rimasti soli
+    .toLowerCase()
+}
+
+export function searchCities(cities: City[], query: string): City[] {
+  const normalizedQuery = normalize(query).trim()
+  if (normalizedQuery.length < MIN_QUERY_LENGTH) {
+    return []
+  }
+
+  return cities
+    .filter((city) => normalize(city.name).startsWith(normalizedQuery))
+    .sort((a, b) => b.population - a.population)
+    .slice(0, MAX_RESULTS)
+}

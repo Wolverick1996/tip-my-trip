@@ -53,3 +53,49 @@ Nei **test** invece si continua a usare `Effect.provide` diretto con un `Layer` 
 ## Alternativa in TypeScript puro
 
 Senza Effect, un use case sarebbe semplicemente una funzione `async` che ritorna una `Promise` direttamente — non esisterebbe questo passaggio esplicito, perché non c'è una fase "descrizione" separata da una fase "esecuzione". Il vantaggio di avere il confine esplicito è che tutto ciò che sta a monte (use case, port, dominio) resta puramente dichiarativo e componibile finché non lo si esegue — comodo soprattutto nei test, dove si fornisce un `Layer` diverso e si esegue solo lì.
+
+## `runSyncExit` ed `Exit`: tradurre il risultato in una risposta HTTP
+
+Usato per: `GET /api/cities` (`src/app/api/cities/route.ts`).
+
+`runtime.runPromise` restituisce il valore di successo, oppure **rigetta** la Promise se l'Effect fallisce. Nelle pagine va bene: o si usa `Effect.either` per trasformare un failure in un ramo della UI, oppure si lascia che l'errore arrivi alla pagina d'errore di Next. In una route API invece ogni esito deve diventare una risposta con lo status giusto: successo → `200`, failure previsto → `400`, defect → `500`. Serve quindi il risultato completo, non solo il valore.
+
+`Effect.runSyncExit(effect)` esegue l'Effect in modo **sincrono** e restituisce un `Exit`, un valore che descrive com'è finita l'esecuzione. Non lancia mai, qualunque cosa sia successa dentro:
+
+- `Exit.Success`, con il valore;
+- `Exit.Failure`, con una **`Cause`**, che dice *perché* è fallito: un failure (`Fail`, con l'errore tipizzato), un defect (`Die`, con l'eccezione), un'interruzione, o una combinazione di questi.
+
+```ts
+const exit = Effect.runSyncExit(searchCitiesByQuery(query))
+
+return Exit.match(exit, {
+  onSuccess: (results) => Response.json(results, { headers: { "Cache-Control": "..." } }),
+  onFailure: (cause) => {
+    if (Option.isSome(Cause.failureOption(cause))) {
+      return Response.json({ error: "Query troppo lunga" }, { status: 400 })
+    }
+    console.error(Cause.pretty(cause))
+    return Response.json({ error: "Errore interno" }, { status: 500 })
+  },
+})
+```
+
+- `Exit.match` è l'equivalente di uno `switch` sui due casi: il type-checker obbliga a gestirli entrambi.
+- `Cause.failureOption(cause)` restituisce l'errore tipizzato se la causa contiene un failure (qui l'unico possibile è il `ParseError` della validazione), `None` altrimenti. `None` significa che il fallimento è un defect o un'interruzione.
+- `Cause.pretty(cause)` produce una descrizione leggibile, con lo stack dell'eccezione, da scrivere nei log. Al client arriva solo un messaggio generico.
+
+### Quale funzione usare per eseguire il programma
+
+La scelta dipende da due domande:
+
+- **Il programma chiede servizi?** Lo dice `R` in `Effect<A, E, R>`. Se chiede un port (es. `TravelerRepository`) serve `runtime`, che contiene il `Layer`; se `R = never`, come nella route, basta `Effect`.
+- **Ha passi asincroni?** Se è tutto sincrono, come qui, si usa `runSync…`; se c'è una Promise (es. una query a un database), serve `runPromise…`.
+
+| | `R = never` | Con servizi |
+|---|---|---|
+| **Sincrono** | `Effect.runSyncExit` (la route oggi) | `runtime.runSyncExit` |
+| **Asincrono** | `Effect.runPromiseExit` | `runtime.runPromiseExit` (la route con un database) |
+
+Le versioni `…Exit` non lanciano mai: restituiscono l'esito, che poi `Exit.match` traduce in status HTTP.
+
+**Alternativa in TypeScript puro.** Un `try/catch` con dentro degli `if` per capire quale errore è arrivato, su un valore tipizzato `unknown`. Con `Exit` e `Cause` i casi sono enumerati e tipizzati, e il failure previsto è distinto dal defect già nella struttura dei dati.

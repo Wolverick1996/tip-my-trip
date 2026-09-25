@@ -1,8 +1,12 @@
 import { Effect, Layer } from "effect"
 import { TravelerNotFoundError } from "@/domain/errors"
 import { TravelerRepository } from "@/domain/traveler-repository"
-import { mockTravelers } from "./mock-data"
+import { mockTravelers } from "./mock-travelers"
 
+/**
+ * Adapter in memoria del port TravelerRepository.
+ * @prototype Si azzera a ogni riavvio. In produzione un adapter su database reale, scelto in runtime.ts.
+ */
 export const InMemoryTravelerRepositoryLive = Layer.succeed(
   TravelerRepository,
   TravelerRepository.of({
@@ -13,7 +17,12 @@ export const InMemoryTravelerRepositoryLive = Layer.succeed(
     },
     save: (traveler) =>
       Effect.sync(() => {
-        mockTravelers.push(traveler)
+        const index = mockTravelers.findIndex((existing) => existing.id === traveler.id)
+        if (index === -1) {
+          mockTravelers.push(traveler)
+        } else {
+          mockTravelers[index] = traveler
+        }
       }),
   }),
 )

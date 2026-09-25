@@ -1,74 +1,191 @@
 # Decision log
 
-Decisioni importanti e motivo per cui sono state prese. Non un changelog: solo scelte che avrebbero potuto essere diverse e vale la pena ricordare perché non lo sono.
+Decisioni che avrebbero potuto essere diverse e che cambiano architettura, comportamento o modo di lavorare, con il loro perché. Descrive lo stato attuale, non la storia: i dettagli implementativi stanno nel codice.
 
-## Un solo tipo `Traveler`, nessun ruolo separato
+- [Dominio e matching](#dominio-e-matching)
+- [Struttura e convenzioni](#struttura-e-convenzioni)
+- [Route e sessione](#route-e-sessione)
+- [Città: catalogo, ricerca, nomi](#città-catalogo-ricerca-nomi)
+- [Registrazione e validazione](#registrazione-e-validazione)
+- [Build e test](#build-e-test)
 
-Un utente registrato può sia comparire come esperto (se indica città conosciute) sia creare viaggi come organizzatore — non ci sono due tipi distinti (`Expert`/`TravelOrganizer`) nel dominio.
+## Dominio e matching
 
-**Perché**: coerente con "niente autenticazione reale" nell'MVP; nella realtà la stessa persona ricopre spesso entrambi i ruoli (un Travel Organizer che a sua volta conosce bene alcune città); meno complessità per il prototipo.
+- **Un solo tipo `Traveler`, nessun ruolo separato**
 
-## Lingua come filtro di esclusione, non come peso nel punteggio
+  Chi si registra può comparire come esperto (se indica città conosciute) e creare viaggi come organizzatore: nel dominio non esistono `Expert` e `TravelOrganizer` distinti.
 
-Un candidato che non condivide nessuna lingua con l'organizzatore è escluso dai risultati, non semplicemente penalizzato nel punteggio.
+  **Perché**: nella realtà la stessa persona ricopre spesso entrambi i ruoli.
 
-**Perché**: un match linguisticamente impossibile non è utilizzabile a prescindere da quanto il candidato conosca le città — non ha senso dargli comunque un punteggio alto. Deciso dopo che la prima proposta (lingua come 20% del punteggio) non rifletteva questo vincolo.
+- **Lingua come filtro di esclusione, non come peso nel punteggio**
 
-## Punteggio di matching: copertura 60% + livello expertise 40%
+  `matchTravelers` scarta un candidato che non condivide nessuna lingua con l'organizzatore (e ovviamente chi non conosce nessuna città del viaggio). L'organizzatore stesso ovviamente non compare mai tra i propri risultati.
 
-Dopo aver tolto la lingua dal punteggio (vedi sopra), i pesi sono stati ridistribuiti tra i due fattori rimanenti invece di lasciare punti "vuoti".
+  **Perché**: un match con cui non si può parlare è inutilizzabile a prescindere da quanto il candidato conosca la città, quindi non deve avere un punteggio.
 
-**Perché**: sono le due dimensioni che restano dopo i filtri, pesate in modo che la copertura (quante città del viaggio conosce) conti leggermente più del livello medio di conoscenza — entrambe scelte arbitrarie ma semplici da spiegare e da cambiare in futuro (sono solo moltiplicatori su rapporti normalizzati 0-1).
+- **Punteggio: copertura 60% + livello di expertise 40%**
 
-## Shortlist multi-esperto e coverage automatica rimandate al Trip Planner multi-città
+  Il punteggio 0-100 somma la copertura (quota delle città del viaggio che il candidato conosce, peso 60) e il livello medio sulle città in comune (peso 40). Formula, esempio e ordinamento sono in `docs/product-brief.md`.
 
-Il primo vertical slice supporta solo la selezione di una singola città. La possibilità di selezionare più esperti per un viaggio (non un solo "vincitore") e di calcolare automaticamente quali città restano scoperte, riproponendo il matching su quelle, è un requisito reale ma viene costruita quando si affronta il Trip Planner multi-città.
+  **Perché**: sono le due dimensioni che restano dopo i filtri, e la copertura conta un po' di più. I pesi sono arbitrari ma facili da spiegare e da cambiare (moltiplicatori su rapporti 0-1).
 
-**Perché**: il vertical slice è scelto apposta per attraversare l'architettura senza costruire tutto il prodotto; l'algoritmo di matching sottostante non richiede modifiche per supportare questo caso (è lo stesso algoritmo applicato a un sottoinsieme di città) — solo la UI/stato di selezione va costruita più avanti.
+- **Città conosciute: `setKnownCity` e `removeKnownCity`, invariante nel dominio**
 
-## Struttura delle cartelle: Ports & Adapters pragmatico
+  Aggiunta e modifica del livello sono un solo use case, `setKnownCity(travelerId, cityId, level)`: se la città è già conosciuta ne aggiorna il livello, altrimenti la aggiunge. La rimozione è un use case distinto, `removeKnownCity(travelerId, cityId)`. L'invariante "al massimo un livello per città" sta nel dominio, nella funzione pura `upsertKnownCity` di `domain/traveler.ts`, e si testa senza repository.
 
-```
-src/
-  app/                 # routing Next.js — Presentation
-  components/          # componenti React condivisi — Presentation
-  domain/              # entità, regole pure e i port (interfacce) dei repository
-  use-cases/           # un file per use case
-  infrastructure/      # implementazioni dei port + dati mock
-```
+  **Perché**: per l'utente aggiungere e modificare sono lo stesso flusso (riselezionare una città già conosciuta apre la modifica). La rimozione ha input diversi e richiede conferma.
 
-I port vivono in `domain/`: è il dominio a dichiarare di cosa ha bisogno, in linguaggio suo — l'infrastruttura li implementa, non il contrario. `infrastructure/` è flat, senza sottocartelle: ne servirebbe una solo per separare più implementazioni (es. in-memory vs un vero backend), fuori scope per l'MVP — si introduce se e quando serve davvero.
+- **`TravelerRepository.save` è un upsert**
 
-**Perché**: coerente con l'evitare astrazioni e nesting non necessari (niente factory, generic repository, interfacce per ogni cosa se non portano un vantaggio reale). `domain/` resta indipendente da React, Next.js e dalle implementazioni concrete, quindi testabile in isolamento.
+  `save(traveler)` sostituisce il traveler se l'id esiste già, altrimenti lo inserisce. Non esiste un `update` separato.
 
-Per lo stesso motivo, `CITIES` (`domain/city.ts`) e la lingue selezionabili (`domain/language.ts`) sono dati di riferimento fissi esportati direttamente, non dietro un port/repository: non c'è nessuna logica di business né un'implementazione alternativa da astrarre, un port lì sarebbe un'interfaccia senza un vantaggio reale.
+  **Perché**: persistere lo stato corrente di un aggregato è una sola operazione, che sia la prima registrazione o una modifica. Un `update` introdurrebbe la precondizione "deve già esistere" e un nuovo errore senza significato di dominio. Il ripristino della sessione (vedi "Persistenza simulata") si basa su questa proprietà.
 
-## `components/` solo per ciò che è davvero condiviso, non per ogni componente React
+## Struttura e convenzioni
 
-Un componente vive in `src/components/` solo se è importato da 2 o più route — altrimenti sta accanto all'unica pagina che lo usa, dentro `src/app/<route>/`. Un file si sposta in `components/` nel momento in cui compare davvero un secondo consumatore, non prima.
+- **Struttura delle cartelle**
 
-**Perché**: Un componente non guadagna una collocazione "condivisa" perché *potrebbe* servire altrove in futuro, solo perché serve altrove adesso. Il costo accettato è spostare di nuovo il file quando compare un vero secondo utilizzo — spostare un file è economico, indovinare male la riusabilità in anticipo no.
+  ```
+  src/
+    app/              # routing Next.js e componenti delle singole route (Presentation)
+    components/       # componenti condivisi tra più route (oggi non esiste)
+    domain/           # tipi, regole pure, port, errori tipizzati
+    use-cases/        # un file per use case
+    infrastructure/   # adapter dei port, catalogo città, dati mock
+    runtime.ts        # ManagedRuntime: sceglie gli adapter veri (composition root)
+    current-user.ts   # lettura/scrittura della sessione
+    user-cookie.ts    # solo il nome del cookie, condiviso da proxy e sessione
+    proxy.ts          # redirect e protezione delle API
+  ```
 
-## File di test in `__tests__/` per cartella, non colocati né in un albero `test/` separato
+  - I port stanno in `domain/`: è il dominio a dichiarare di cosa ha bisogno, l'infrastruttura lo implementa. Così `domain/` non dipende da React, Next.js né dalle implementazioni concrete, e si testa in isolamento.
+  - La Presentation (`app/`) non importa mai da `infrastructure/`: passa sempre da uno use case, anche quando è un semplice inoltro (es. `getCity`), così cambiare un adapter non tocca le pagine.
+  - `infrastructure/` è piatta: sottocartelle servirebbero solo con più implementazioni dello stesso port (es. in-memory vs un vero backend).
+  - Un componente sta in `src/components/` solo se lo importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no.
+  - I dati di riferimento senza logica né implementazioni alternative (lingue selezionabili in `domain/language.ts`, livelli in `domain/expertise-level.ts`, catalogo città in `infrastructure/city-catalog.ts`) sono esportati direttamente, senza port. Lingue e livelli stanno in `domain/` perché sono scelte del prodotto; il catalogo città sta in `infrastructure/` perché è un dataset esterno letto da disco (con `fs`, solo lato server).
+  - Il nome del cookie sta da solo in `user-cookie.ts` perché lo importa anche `proxy.ts`: prenderlo da `current-user.ts` trascinerebbe nel proxy anche `runtime` e `next/headers`.
+  - I nomi leggibili dei valori di dominio stanno accanto al tipo (`getLanguageName`, `expertiseLevelLabel`, `EXPERTISE_LEVELS`): "Base", "Expert", "Local" sono vocabolario del prodotto, non di una schermata.
 
-I test vivono in una sottocartella `__tests__/` dentro ogni cartella di codice sorgente, es. `src/domain/__tests__/matching.test.ts` per `src/domain/matching.ts`. Scartate sia la colocation diretta (`src/domain/matching.test.ts`), sia un albero `test/` parallelo a `src/`.
+- **Quando usare Effect**
 
-**Perché**: preferenza per non avere file di test mescolati nella stessa lista di file dei sorgenti quando si guarda una cartella — scarta la colocation diretta. Un albero `test/` parallelo darebbe separazione totale ma introduce una seconda struttura di cartelle da tenere allineata a `src/`, complessità in più senza un vantaggio chiaro. `__tests__/` per cartella è la via di mezzo: separazione visiva senza duplicare la struttura altrove, ed è una convenzione nativa di Jest — nessuna modifica a `jest.config.mjs` necessaria.
+  Effect si usa solo quando risolve uno di due problemi: una dipendenza da iniettare (un port, con `Context.Tag` e `Layer`) o un errore previsto da propagare nel tipo. Il resto è TypeScript normale: usarlo per uniformità aggiungerebbe cerimonia senza benefici.
 
-## Controllo di formato dell'email: solo sintattico, con `Schema` di Effect
+  Un risultato assente non è un errore: una città non trovata è `undefined`, una ricerca senza risultati è un array vuoto (vedi `docs/effect/02-typed-errors.md`, "fallimento vs nessun risultato").
 
-`registerTraveler` verifica che l'email abbia un formato sintatticamente plausibile (pattern regex via `Schema.pattern`, vedi `docs/effect/04-validating-data-schema.md`), non che esista davvero — nessuna verifica reale (invio email) è prevista.
+  Unica eccezione voluta: la route `GET /api/cities`, scritta con Effect per esercitare il pattern che servirà con un database (vedi "Ricerca città dal client").
 
-**Perché**: basta a scartare errori di battitura evidenti, coerente con "niente integrazioni reali con WhatsApp/email" nell'MVP. Usato `Schema` (già parte del pacchetto `effect`, già installato) invece di aggiungere una libreria di validazione esterna solo per un pattern regex.
+- **Moduli usati da client component: mai dipendenze, neanche indirette, dal catalogo città**
 
-## Numero WhatsApp: selettore prefisso + validazione reale per paese, con `react-phone-number-input`/`libphonenumber-js`
+  Un modulo importato da un client component non deve raggiungere `infrastructure/city-catalog.ts`. Le pagine che mostrano il nome di una città da un id sono Server Component e chiamano `getCity`; i client component ricevono dati già risolti (es. `ResolvedKnownCity`) o usano solo moduli senza dipendenze (`domain/expertise-level.ts`).
 
-In registrazione, il numero WhatsApp è un componente `PhoneInput` (`react-phone-number-input`, `defaultCountry="IT"`) con selettore del prefisso internazionale (bandiera + menu) e formattazione mentre si digita. La validazione usa `libphonenumber-js` (`domain/contact-format.ts`, `parseWhatsAppNumber`): controlla che il numero sia realmente valido *per il paese che rappresenta* (lunghezza, prefissi ammessi), non solo che "sembri" un numero. `parseWhatsAppNumber` fa parsing e validazione in un solo passaggio: ritorna il numero in formato E.164 (`"+393331234567"`) se valido, `undefined` altrimenti — lo stesso valore, già pulito, è quello salvato in `Traveler.contact.whatsApp`.
+  **Perché**: il catalogo carica `all-the-cities`, che usa `fs`. Se un solo export di un modulo arriva nel bundle del browser ci arriva tutto il modulo con le sue importazioni (il tree-shaking non lo evita, il caricamento ha effetti collaterali), e il build fallisce con "Can't resolve 'fs'". Il confine client/server va rispettato a livello di file.
 
-**Perché**: la combinazione paese+lunghezza di un numero di telefono è una vera competenza specialistica (ogni paese ha le sue regole), diversa dai controlli di formato semplici già visti (email, lingue) — reimplementarla a mano sarebbe fragile e incompleta. `react-phone-number-input`/`libphonenumber-js` sono lo standard de facto per questo problema specifico in JavaScript (basati sui dati reali di Google libphonenumber).
+## Route e sessione
 
-## Form di registrazione: campi controllati e submit gestito a mano, non `<form action>`
+- **Route `/register` e `/my-world`, e il proxy decide dove mandarti**
 
-`RegisterForm` non passa `registerAction` direttamente all'attributo `action` del `<form>`; gestisce il submit a mano (`onSubmit` + `preventDefault`, `FormData` costruita dallo stato dei campi) e chiama `registerAction(formData)` esplicitamente dentro `startTransition` di `useTransition`. I campi (nome, lingue, contatti) sono tutti controllati (`value`/`onChange`), non semplici `defaultValue`.
+  "Il mio mondo" è `/my-world`; non esiste una `page.tsx` di root. `src/proxy.ts` contiene tutta la regola "dove devi stare" e reindirizza con un solo salto:
 
-**Perché**: React resetta i campi di un `<form action={...}>` dopo ogni submit gestito da quell'attributo — anche i campi controllati, anche in caso di errore di validazione. Con la registrazione, un errore (es. email non valida) farebbe perdere tutto quello che l'utente aveva già scritto. Passando per `onSubmit` invece dell'integrazione nativa `<form action>`, quel reset automatico non scatta.
+  - senza cookie, qualunque pagina diversa da `/register` (compresa `/`) porta a `/register`;
+  - con il cookie, `/` e `/register` portano a `/my-world`.
+
+  Le route sotto `/api/` non vengono mai reindirizzate: sono chiuse per default e si aprono una per una in `PUBLIC_API_PATHS` (oggi solo `/api/cities`). Le altre, senza cookie, ricevono `401` in JSON.
+
+  **Perché**: una sola regola in un solo punto, così le pagine possono dare per scontato che il cookie ci sia. Per le API un redirect non ha senso: una `fetch` finirebbe a leggere come JSON la pagina HTML di `/register`.
+
+  **Scartato**: lasciar passare tutto ciò che inizia con `/api/`, perché una nuova API privata resterebbe pubblica finché qualcuno non si ricorda di proteggerla.
+
+- **Persistenza simulata: il cookie conserva il `Traveler` e lo reinserisce dopo un riavvio**
+
+  I traveler stanno in memoria e si azzerano a ogni riavvio del server; in produzione se ne occuperebbe il database. Per simularne la persistenza, il cookie `tipmytrip_user` contiene il `Traveler` completo in JSON, riscritto con `setCurrentUser` a ogni modifica. Ogni punto che legge l'utente corrente usa `getSyncedCurrentUser()`: legge il cookie con `getCurrentUser()` e reinserisce il traveler nel repository con `syncCurrentTraveler` (un `repo.save`).
+
+  Gli stati possibili sono due: senza cookie si va alla registrazione, con il cookie si usa l'app. Un cookie con JSON corrotto (possibile solo modificandolo a mano) non è gestito: Next mostra la sua pagina d'errore.
+
+  **Perché**:
+  - senza reinserimento, dopo un riavvio bisognerebbe registrarsi di nuovo, e anche la propria ricerca smetterebbe di funzionare (`findExpertsForCity` legge le lingue dell'organizzatore dal repository);
+  - si usa lo stesso port e lo stesso `save` di ogni altro use case, senza un percorso di persistenza parallelo;
+  - gli use case non sanno niente del cookie: il loro `TravelerNotFoundError` resta nel tipo, anche se nell'uso reale non capita più.
+
+  **Limiti accettati**: il cookie non è firmato né validato, quindi chi lo modifica a mano può inserire un `Traveler` arbitrario nel repository (coerente con l'assenza di autenticazione); il limite di circa 4KB di un cookie basta per un profilo con poche città.
+
+  **In produzione**: il cookie conterrebbe solo un id di sessione verificato lato server, e il reinserimento sparirebbe.
+
+## Città: catalogo, ricerca, nomi
+
+- **Catalogo città: dataset in `infrastructure/`, ricerca pura in `domain/`, nessun port**
+
+  `infrastructure/city-catalog.ts` carica una volta `all-the-cities` (circa 135k città GeoNames) e lo converte in `City`. La ricerca è una funzione pura in `domain/city.ts`, `searchCities(cities, query)`, che riceve l'elenco come parametro e quindi si testa con pochi dati finti. Gli use case `searchCities` e `getCity` fanno da ponte verso la Presentation.
+
+  **Perché**: niente port né Effect, perché il catalogo è un dataset unico, in sola lettura, senza implementazioni alternative né stato da isolare nei test (a differenza di `TravelerRepository`, le cui scritture sono osservate da altri use case). Non c'è nessuna dipendenza da iniettare e nessun errore previsto: una città non trovata è `undefined`.
+
+- **Ricerca città dal client: Route Handler `GET /api/cities`, non Server Action**
+
+  Il codice server può essere chiamato dal browser in due modi:
+  - una **Server Action** è una funzione scritta sul server che il client chiama come una funzione normale (`await setKnownCityAction(...)`); Next la trasforma da sé in una richiesta HTTP;
+  - un **Route Handler** è un endpoint HTTP classico (`src/app/api/cities/route.ts` risponde a `GET /api/cities?q=...`), che il client chiama con `fetch`.
+
+  Le **mutazioni**, cioè le operazioni che modificano dati (`registerAction`, `setKnownCityAction`, `removeKnownCityAction`), sono Server Action. La **ricerca città** del modale, che legge soltanto, è un Route Handler. Le pagine renderizzate sul server non passano da nessuno dei due: chiamano gli use case direttamente.
+
+  **Perché**:
+  - le Server Action vengono eseguite una alla volta, in coda, non si possono annullare e sono sempre richieste `POST`, che non si mettono in cache. Per una ricerca mentre si digita è un problema: scrivendo "Ro" e poi "Roma", la ricerca di "Roma" aspetta che finisca quella di "Ro", ormai inutile, e ogni ricerca arriva al server anche se identica a una già fatta. Con una `GET` fatta con `fetch` ogni richiesta parte subito, un `AbortController` annulla quella precedente a ogni tasto, e le risposte si possono mettere in cache;
+  - per le mutazioni invece le Server Action sono comode: il tipo di ritorno arriva al client senza scrivere niente, includono una protezione contro le richieste partite da altri siti (CSRF), e nello stesso punto si può riscrivere il cookie;
+  - far chiamare a una pagina server il proprio Route Handler aggiungerebbe un giro HTTP inutile verso se stessa.
+
+  Come si comporta la route:
+
+  - **Pubblica e in cache.** Restituisce città uguali per tutti, senza dati dell'utente, quindi non richiede il cookie (`PUBLIC_API_PATHS`) e le risposte si riusano per un'ora (`Cache-Control`): la seconda ricerca di "Roma" non arriva al server.
+  - **Risponde con un DTO**, cioè una forma dei dati pensata per il client e separata dal modello interno: `CitySearchResult` ha solo `id`, `name` e `country`, non l'intero `City`. Sta in `city-search-result.ts`, fuori dalla route, così il client lo importa senza trascinarsi dietro il catalogo.
+  - **Scritta con Effect, per scelta didattica**: query troppo lunga → `400`, eccezione imprevista → `500`. È lo schema che servirà con un database.
+
+  **In produzione** (non implementato):
+
+  - **Database indicizzato** al posto del catalogo in memoria: ricerca asincrona e fallibile, quindi port `CityCatalog` ed Effect negli use case, con il guasto del database come errore (es. `503`).
+  - **Rate limiting** della piattaforma o con un contatore condiviso (es. Redis): uno in memoria vale per un solo processo e non riconosce l'IP in modo affidabile.
+  - **Una libreria di data fetching** lato client per richieste doppie, cache nel browser e nuovi tentativi.
+  - **Osservabilità**: log strutturati, metriche, tracing.
+
+- **Risultati mostrati come "Città, Paese", senza regione**
+
+  La ricerca mostra "Springfield, Stati Uniti", non la regione o lo stato interno.
+
+  **Perché**: la regione servirebbe solo a distinguere omonimi nello stesso paese, un caso raro che appesantirebbe ogni riga.
+
+  **Limiti accettati**: due omonimi nello stesso paese si distinguono solo dopo la selezione, sulla mappa.
+
+- **Nomi città anglicizzati: tabella di override per le principali**
+
+  GeoNames usa il nome inglese per molte città note ("Rome", "Milan"). `CITY_NAME_OVERRIDES` in `infrastructure/city-catalog.ts` mette il nome italiano al posto di quello inglese per una trentina di città, usando l'id GeoNames come chiave.
+
+  **Perché**: lo stesso nome serve per mostrare e per cercare, quindi senza la tabella cercare "Milano" non troverebbe niente. Una soluzione completa sarebbe sproporzionata per un prototipo.
+
+  **In produzione**: la tabella verrebbe generata da uno script, dai nomi per lingua di GeoNames (`alternateNames`) o da Wikidata, e la ricerca indicizzerebbe più varianti di ogni nome (locale, italiano, altri).
+
+  **Scartato**: un servizio di traduzione in tempo reale, anche in produzione, perché aggiunge dipendenza di rete e costi per un dato che non cambia.
+
+## Registrazione e validazione
+
+- **Email: solo controllo sintattico, con `Schema` di Effect**
+
+  `registerTraveler` verifica che l'email abbia un formato plausibile (`Schema.pattern`), non che esista.
+
+  **Perché**: basta a scartare gli errori di battitura, e nell'MVP non c'è nessuna integrazione reale con l'email. `Schema` fa già parte di `effect`, quindi niente librerie in più.
+
+- **Numero WhatsApp: validazione reale per paese con `libphonenumber-js`**
+
+  Il campo ha il selettore del prefisso (`react-phone-number-input`), e `parseWhatsAppNumber` in `domain/contact-format.ts` verifica che il numero sia valido per il suo paese e lo salva in formato internazionale (`"+393331234567"`).
+
+  **Perché**: lunghezze e prefissi cambiano da paese a paese, e reimplementarli sarebbe fragile. Queste librerie sono lo standard in JavaScript.
+
+- **Form di registrazione: submit gestito a mano, non `<form action>`**
+
+  `RegisterForm` gestisce l'invio da sé (`onSubmit`) e chiama `registerAction`, invece di passarla all'attributo `action` del form.
+
+  **Perché**: con `<form action>` React svuota i campi dopo ogni invio, anche in caso di errore: un'email non valida farebbe perdere tutto quello che l'utente aveva scritto.
+
+## Build e test
+
+- **Test in `__tests__/` per cartella**
+
+  I test stanno in una sottocartella `__tests__/` dentro ogni cartella di sorgenti (es. `src/domain/__tests__/matching.test.ts`).
+
+  **Perché**: i test non si mescolano ai sorgenti nell'elenco dei file, non c'è un secondo albero da tenere allineato a `src/`, ed è una convenzione che Jest riconosce senza configurazione.
