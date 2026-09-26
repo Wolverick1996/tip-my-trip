@@ -114,7 +114,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
 - **Catalogo città: dataset in `infrastructure/`, ricerca pura in `domain/`, nessun port**
 
-  `infrastructure/city-catalog.ts` carica una volta `all-the-cities` (circa 135k città GeoNames) e lo converte in `City`. La ricerca è una funzione pura in `domain/city.ts`, `searchCities(cities, query)`, che riceve l'elenco come parametro e quindi si testa con pochi dati finti. Gli use case `searchCities` e `getCity` fanno da ponte verso la Presentation.
+  `infrastructure/city-catalog.ts` carica una volta `all-the-cities` (circa 135k città GeoNames) e lo converte in `City`. La ricerca è una funzione pura in `domain/city.ts`, `searchCities(cities, query)`, che riceve l'elenco come parametro e quindi si testa con pochi dati finti. Gli use case `searchCities` e `getCity` fanno da ponte verso la Presentation; `getCity` chiama direttamente `findCityById` del catalogo, senza passare dal dominio, perché risolvere un id è un lookup senza regole da incapsulare.
 
   **Perché**: niente port né Effect, perché il catalogo è un dataset unico, in sola lettura, senza implementazioni alternative né stato da isolare nei test (a differenza di `TravelerRepository`, le cui scritture sono osservate da altri use case). Non c'è nessuna dipendenza da iniettare e nessun errore previsto: una città non trovata è `undefined`.
 
