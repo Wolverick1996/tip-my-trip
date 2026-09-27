@@ -1,7 +1,7 @@
 "use server"
 
 import { Effect, Either } from "effect"
-import { setCurrentUser } from "@/current-user"
+import { setCurrentUserId } from "@/current-user"
 import type { LanguageCode } from "@/domain/language"
 import { runtime } from "@/runtime"
 import { registerTraveler } from "@/use-cases/register-traveler"
@@ -25,6 +25,6 @@ export async function registerAction(formData: FormData): Promise<RegisterFormSt
     return { error: result.left.reason, success: false }
   }
 
-  await setCurrentUser(result.right)
+  await setCurrentUserId(result.right.id)
   return { success: true }
 }

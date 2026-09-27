@@ -5,8 +5,8 @@ import { matchTravelers, type MatchResult } from "@/domain/matching"
 import { TravelerRepository } from "@/domain/traveler-repository"
 import type { TravelerId } from "@/domain/traveler"
 
-export const findExpertsForCity = (
-  cityId: CityId,
+export const findExpertsForTrip = (
+  cityIds: CityId[],
   organizerId: TravelerId,
 ): Effect.Effect<MatchResult[], TravelerNotFoundError, TravelerRepository> =>
   Effect.gen(function* () {
@@ -14,5 +14,5 @@ export const findExpertsForCity = (
     const organizer = yield* repo.findById(organizerId)
     const travelers = yield* repo.findAll()
     const candidates = travelers.filter((traveler) => traveler.id !== organizerId)
-    return matchTravelers({ cityIds: [cityId] }, organizer, candidates)
+    return matchTravelers({ cityIds }, organizer, candidates)
   })

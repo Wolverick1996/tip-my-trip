@@ -1,18 +1,18 @@
 # Dipendenze: `Context.Tag` e `Layer`
 
-Usati per: dare al use case `findExpertsForCity` un modo di leggere i `Traveler` senza dover sapere se vengono da un array in memoria o (un domani) da un vero database.
+Usati per: dare al use case `findExpertsForTrip` un modo di leggere i `Traveler` senza dover sapere se vengono da un array in memoria o (un domani) da un vero database.
 
 ## Come si fa DI in TypeScript puro
 
 Due strade ingenue, prima di arrivare a quella fatta bene.
 
-- **Parametro esplicito, ripetuto a ogni livello** ("prop drilling" applicato alle funzioni) — se `findExpertsForCity` chiama `scoreTraveler`, che chiama `checkLanguageMatch`, e tutte e tre hanno bisogno del repository, va ripassato esplicitamente a ognuna, anche a quelle che lo usano solo per inoltrarlo oltre:
+- **Parametro esplicito, ripetuto a ogni livello** ("prop drilling" applicato alle funzioni) — se `findExpertsForTrip` chiama `scoreTraveler`, che chiama `checkLanguageMatch`, e tutte e tre hanno bisogno del repository, va ripassato esplicitamente a ognuna, anche a quelle che lo usano solo per inoltrarlo oltre:
 
   ```ts
-  function findExpertsForCity(repo: TravelerRepository, cityId: CityId) {
-    return scoreTraveler(repo, cityId /* ... */)
+  function findExpertsForTrip(repo: TravelerRepository, cityIds: CityId[]) {
+    return scoreTraveler(repo, cityIds /* ... */)
   }
-  function scoreTraveler(repo: TravelerRepository, cityId: CityId /* ... */) {
+  function scoreTraveler(repo: TravelerRepository, cityIds: CityId[] /* ... */) {
     return checkLanguageMatch(repo /* ... */)
   }
   function checkLanguageMatch(repo: TravelerRepository /* ... */) {
@@ -25,12 +25,12 @@ Due strade ingenue, prima di arrivare a quella fatta bene.
   ```ts
   import { travelerRepository } from "./the-repo"
 
-  function findExpertsForCity(cityId: CityId) {
+  function findExpertsForTrip(cityIds: CityId[]) {
     return travelerRepository.findAll()   // dipendenza invisibile guardando la firma
   }
   ```
 
-  Niente nella firma di `findExpertsForCity(cityId: CityId)` rivela che dipende da qualcosa di esterno. Sostituirlo in un test richiede mockare il modulo intero (`jest.mock("./the-repo")`), non semplicemente passare un valore diverso.
+  Niente nella firma di `findExpertsForTrip(cityIds: CityId[])` rivela che dipende da qualcosa di esterno. Sostituirlo in un test richiede mockare il modulo intero (`jest.mock("./the-repo")`), non semplicemente passare un valore diverso.
 
 La strada **fatta bene** in hexagonal architecture, in stile funzionale, è questa:
 
@@ -53,8 +53,8 @@ export const inMemoryTravelerRepository: TravelerRepository = {
 **3. Il use case dichiara di dipendere dall'interfaccia**, come parametro — un solo punto di iniezione, non ripetuto a ogni chiamata interna:
 
 ```ts
-export const findExpertsForCity = (
-  cityId: CityId,
+export const findExpertsForTrip = (
+  cityIds: CityId[],
   travelerRepository: TravelerRepository,
 ) => {
   // usa travelerRepository.findAll()
@@ -64,7 +64,7 @@ export const findExpertsForCity = (
 **4. Un composition root (`Factory.ts` o simile) inietta l'implementazione concreta**, una volta, all'avvio:
 
 ```ts
-findExpertsForCity(cityId, inMemoryTravelerRepository)
+findExpertsForTrip(cityIds, inMemoryTravelerRepository)
 ```
 
 Il use case conosce solo `TravelerRepository`, non `inMemoryTravelerRepository` né (un domani) Prisma o un altro ORM. Il binding è manuale (`Factory.ts` decide esplicitamente cosa passare), non un container con reflection/decorator: a runtime l'interfaccia sparisce del tutto (le interfacce TypeScript sono erase, non esistono compilate in JS), resta solo l'oggetto concreto passato come argomento.
@@ -75,11 +75,11 @@ Questo pattern funziona bene e risolve già **visibilità e type-safety**: se `F
 
 Tre differenze concrete rispetto al pattern sopra:
 
-- **Il requisito si propaga da solo attraverso composizioni annidate, non solo a un livello.** Nel pattern sopra, se `findExpertsForCity` chiamasse internamente un'altra funzione che ha anch'essa bisogno di `TravelerRepository` (o di un port diverso), bisognerebbe passarglielo esplicitamente come ulteriore parametro — re-injection manuale a ogni nuovo livello di chiamata. Con Effect, se una funzione Effect ne chiama un'altra con `yield*` che richiede un port diverso, il tipo `Requirements` si unisce automaticamente ai due — un solo `Effect.provide` alla fine soddisfa tutto, qualunque sia la profondità della composizione.
+- **Il requisito si propaga da solo attraverso composizioni annidate, non solo a un livello.** Nel pattern sopra, se `findExpertsForTrip` chiamasse internamente un'altra funzione che ha anch'essa bisogno di `TravelerRepository` (o di un port diverso), bisognerebbe passarglielo esplicitamente come ulteriore parametro — re-injection manuale a ogni nuovo livello di chiamata. Con Effect, se una funzione Effect ne chiama un'altra con `yield*` che richiede un port diverso, il tipo `Requirements` si unisce automaticamente ai due — un solo `Effect.provide` alla fine soddisfa tutto, qualunque sia la profondità della composizione.
 - **Niente liste di parametri posizionali che crescono.** Nell'esempio reale, `Factory.ts` passa una sequenza di argomenti posizionali (`cardProviders, dbBnplRepository, instalmentRepository, dbAgentRepository, ...`) — funziona, ma più dipendenze si aggiungono più quella lista è fragile (ordine da rispettare, facile confondersi). `Layer` si combina (`Layer.merge`) e viene applicato per identità del `Context.Tag`, non per posizione.
 - **`Context.Tag` non sparisce a runtime, a differenza di un'interfaccia TS.** È una classe reale (`extends Context.Tag(...)`), quindi esiste anche compilata in JS — deve esistere, perché Effect la usa come chiave per cercare l'implementazione giusta nell'ambiente quando esegue l'Effect (`Effect.provide`). Un'interfaccia TS pura, invece, è solo un controllo a compile-time: a runtime non ne resta traccia, come giustamente notato nell'esempio sopra.
 
-Per un solo port in-memory come nel nostro vertical slice, il primo vantaggio è ancora marginale — diventa tangibile quando use case e port aumentano.
+Con i due port di oggi (`TravelerRepository` e `TripRepository`) il primo vantaggio è ancora piccolo — diventa tangibile quando use case e port aumentano.
 
 ## Cosa sono, concretamente
 
@@ -103,6 +103,8 @@ class TravelerRepository extends Context.Tag("TravelerRepository")<
 
 **`Layer`** descrive come costruire un servizio da mettere in un `Context`. Un'app tipicamente ne ha più d'uno — uno per servizio — combinati insieme in un unico `Context` fornito una volta sola all'avvio, non un `Layer` a testa per ogni `Effect`. Nel nostro vertical slice, con un solo port, ce n'è uno solo e non c'è ancora nulla da combinare:
 
+Esempio con un adapter in memoria (nell'app l'adapter vero è `FileTravelerRepositoryLive`, che salva su file JSON; lo stesso schema si usa nei test):
+
 ```ts
 const InMemoryTravelerRepositoryLive = Layer.succeed(
   TravelerRepository,             // per quale Tag
@@ -113,7 +115,7 @@ const InMemoryTravelerRepositoryLive = Layer.succeed(
 )
 ```
 
-Questa è la forma più semplice (`Layer.succeed`, consegna diretta di un'implementazione già pronta). `Layer` può fare anche di più — costruire un servizio che dipende da altri, che può fallire nella costruzione, o che gestisce un ciclo di vita (apertura/chiusura di una risorsa) — ma per il nostro port in-memory non serve: non c'è nessuna vera "costruzione" da fare.
+Questa è la forma più semplice (`Layer.succeed`, consegna diretta di un'implementazione già pronta). `Layer` può fare anche di più — costruire un servizio che dipende da altri, che può fallire nella costruzione, o che gestisce un ciclo di vita (apertura/chiusura di una risorsa) — ma per i nostri adapter su file non serve: non c'è nessuna vera "costruzione" da fare, perché leggono e scrivono il file a ogni operazione.
 
 **Attenzione a non confondere due canali d'errore diversi, entrambi chiamati `E` ma in momenti diversi**: `Layer<ROut, E, RIn>` ha un proprio `E`, ma è l'errore che può capitare *mentre il Layer viene costruito/assemblato* — non gli errori che i metodi del servizio restituiscono quando vengono chiamati dopo. `Layer.succeed` consegna un oggetto già pronto, senza nessuna vera costruzione (niente connessioni, niente asincronia): non c'è nulla che possa fallire in quel momento, quindi il suo `E` è `never`, anche se `findById` può fallire con `TravelerNotFoundError` — quell'errore vive nel tipo del *metodo* (`Effect<Traveler, TravelerNotFoundError>`), non nel tipo del `Layer`. Sono due momenti distinti: costruzione del Layer (una volta, quando fornisci l'implementazione) vs. chiamata al metodo (ogni volta che il use case lo invoca). Se domani il repository diventasse un vero database, si userebbe `Layer.effect` invece di `Layer.succeed` (costruisce il servizio con un `Effect`, es. aprendo una connessione) — lì sì che il `Layer` potrebbe avere un `E` diverso da `never`.
 
@@ -122,12 +124,12 @@ Questa è la forma più semplice (`Layer.succeed`, consegna diretta di un'implem
 Il port `TravelerRepository` (definito sopra) si richiede con `yield*`, dentro un `Effect.gen`:
 
 ```ts
-const findExpertsForCity = (cityId: CityId, organizerId: TravelerId) =>
+const findExpertsForTrip = (cityIds: CityId[], organizerId: TravelerId) =>
   Effect.gen(function* () {
     const repo = yield* TravelerRepository   // "dammi qualcosa che soddisfi questo port"
     const organizer = yield* repo.findById(organizerId)
     const travelers = yield* repo.findAll()
-    return matchTravelers({ cityIds: [cityId] }, organizer, travelers)   // la funzione pura di matching
+    return matchTravelers({ cityIds }, organizer, travelers)   // la funzione pura di matching
   })
 ```
 
@@ -137,10 +139,26 @@ Per eseguire il use case, si "fornisce" il `Layer` (`InMemoryTravelerRepositoryL
 
 ```ts
 Effect.provide(
-  findExpertsForCity(cityId, organizerId),
+  findExpertsForTrip(cityIds, organizerId),
   InMemoryTravelerRepositoryLive,
 )
 ```
+
+## Più port: `Layer.mergeAll`
+
+Usato per: fornire insieme `TravelerRepository` e `TripRepository` (`src/runtime.ts`).
+
+Un use case come `listTrips` chiede due servizi: il suo tipo è `Effect<…, never, TripRepository | TravelerRepository>`, cioè "servono entrambi". Ogni adapter è un `Layer` che fornisce un servizio solo, quindi vanno combinati in un `Layer` che li fornisce tutti e due:
+
+```ts
+export const runtime = ManagedRuntime.make(
+  Layer.mergeAll(FileTravelerRepositoryLive, FileTripRepositoryLive),
+)
+```
+
+`Layer.mergeAll(a, b, …)` unisce layer indipendenti: il risultato fornisce l'unione dei loro servizi. Se ne manca uno, il programma che lo chiede non compila, perché il suo requisito non è soddisfatto. Nei test si fa lo stesso con due layer finti (vedi `src/use-cases/__tests__/trips.test.ts`).
+
+**Alternativa senza Effect**: il composition root costruisce i due repository e li passa entrambi come parametri a ogni use case che li usa, con liste di argomenti che crescono a ogni nuova dipendenza.
 
 ## Decisione per il progetto: solo `Layer`, niente Factory separata
 
@@ -148,4 +166,4 @@ Il `Factory.ts` del pattern sopra fa lo stesso lavoro di `Layer`: è un composit
 
 ## Nei test
 
-Nei test si fornisce un `Layer` diverso, con dati di fixture scritti a mano, invece di mockare funzioni con `jest.fn()` — l'adapter in-memory è già l'implementazione "vera" per l'MVP, quindi anche nei test si fornisce una sua variante con dati diversi, non un doppio finto.
+Nei test si fornisce un `Layer` diverso, con dati di fixture scritti a mano, invece di mockare funzioni con `jest.fn()` — per esempio i test degli adapter su file usano le stesse factory (`makeFileTravelerRepository`, `makeFileTripRepository`) puntate su una cartella temporanea.

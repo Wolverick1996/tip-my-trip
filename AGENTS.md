@@ -21,7 +21,7 @@ Il primo vertical slice a cui puntare: **seleziono una città → trovo le perso
 
 **Fuori per ora** (non aggiungere pensando "potrebbe servire in futuro"): backend reale, database, autenticazione reale, chat, notifiche, integrazioni reali con WhatsApp/email, recommendation engine, traduzioni, infrastruttura cloud, microservizi.
 
-Dati mock/in-memory per il prototipo.
+Dati mock, salvati in file JSON locali (`.data/`) per sopravvivere ai riavvii: niente database, servizi esterni o hosting cloud.
 
 ## Stack tecnico
 
@@ -33,7 +33,7 @@ Hexagonal Architecture / Ports & Adapters, ma pragmatica:
 
 - **Domain** — modello e regole di business (non dipende da React né dall'infrastruttura).
 - **Application** — use case.
-- **Infrastructure** — repository e implementazioni (per l'MVP: in-memory).
+- **Infrastructure** — repository e implementazioni (per l'MVP: su file JSON locali).
 - **Presentation** — React/UI.
 
 Evitare factory, generic repository, interfacce per ogni cosa e dependency injection artificiale se non portano un vantaggio reale. Le scelte concrete di dominio e architettura vengono definite e documentate in `docs/decisions.md` prima di essere implementate, non date per scontate qui.
@@ -42,7 +42,7 @@ Evitare factory, generic repository, interfacce per ogni cosa e dependency injec
 
 Ridotti al minimo: il codice dev'essere il più possibile autoesplicativo (nomi chiari, funzioni piccole), non spiegato a parole vicino a sé. Un commento si scrive solo per un perché non ovvio che il codice da solo non può dire (un vincolo nascosto, un workaround per un problema specifico, un comportamento che sorprenderebbe chi legge) — mai per descrivere cosa fa il codice o ripetere il nome di una variabile/funzione in prosa. Il "perché" di una decisione più ampia (una scelta architetturale, un trade-off, la motivazione dietro un'API scelta) va in `docs/decisions.md` o `docs/effect/`, non in un blocco di commento nel codice.
 
-Le scorciatoie che esistono solo perché questo è un prototipo, e che in produzione sparirebbero o cambierebbero (dati in memoria, sessione nel cookie…), si segnano con un commento JSDoc (`/** … */`) con il tag `@prototype`, così si trovano tutte con una ricerca e l'editor mostra la nota anche nell'hover, in ogni punto in cui il simbolo viene usato. Il tag dice in una riga cosa lo sostituirebbe in produzione, e va solo dove la scorciatoia è definita (la funzione, il file), non ripetuto a ogni punto in cui viene usata.
+Le scorciatoie che esistono solo perché questo è un prototipo, e che in produzione sparirebbero o cambierebbero (dati in file JSON locali, id di sessione non firmato…), si segnano con un commento JSDoc (`/** … */`) con il tag `@prototype`, così si trovano tutte con una ricerca e l'editor mostra la nota anche nell'hover, in ogni punto in cui il simbolo viene usato. Il tag dice in una riga cosa lo sostituirebbe in produzione, e va solo dove la scorciatoia è definita (la funzione, il file), non ripetuto a ogni punto in cui viene usata.
 
 ## Effect
 

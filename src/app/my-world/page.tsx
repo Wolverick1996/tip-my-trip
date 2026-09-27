@@ -1,12 +1,12 @@
 import { Suspense } from "react"
-import { getSyncedCurrentUser } from "@/current-user"
+import { getCurrentUser } from "@/current-user"
 import { getCity } from "@/use-cases/get-city"
 import { MyWorld } from "./MyWorld"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 import { WelcomeOnboarding } from "./WelcomeOnboarding"
 
 export default async function MyWorldPage() {
-  const traveler = await getSyncedCurrentUser()
+  const traveler = await getCurrentUser()
 
   const knownCities: ResolvedKnownCity[] = traveler.knownCities.flatMap((known) => {
     const city = getCity(known.cityId)

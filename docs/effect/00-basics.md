@@ -26,11 +26,11 @@ Effect.fail(new MyError())      // Effect<never, MyError, never> — fallimento 
 Altri due costruttori che si usano spesso:
 
 ```ts
-Effect.sync(() => mockTravelers.push(traveler))   // Effect<void, never, never> — esegue un side effect sincrono
+Effect.sync(() => writeJsonFile(filePath, travelers))   // Effect<void, never, never> — esegue un side effect sincrono
 Effect.void                                        // Effect<void, never, never> — non fa nulla, serve solo il "successo"
 ```
 
-`Effect.sync(fn)` avvolge una funzione sincrona che fa qualcosa (una mutazione, una scrittura) e si assume non lanci eccezioni — usato ad esempio in `infrastructure/in-memory-traveler-repository.ts` per `save`, che deve solo aggiungere un elemento a un array, senza restituire un valore utile. `Effect.void` è una scorciatoia già pronta per "successo, nessun valore" — comodo nei test quando un metodo del port non serve davvero (es. un `save` finto che non deve fare nulla).
+`Effect.sync(fn)` avvolge una funzione sincrona che fa qualcosa (una mutazione, una scrittura) senza restituire un valore utile — usato ad esempio in `infrastructure/file-traveler-repository.ts` per `save`, che riscrive il file JSON. Il canale d'errore resta `never`: se `fn` lancia un'eccezione (disco pieno, file corrotto), Effect la tratta come un *defect*, cioè un guasto imprevisto, non come un errore previsto da gestire (vedi `02-typed-errors.md`, "Failure e defect"). `Effect.void` è una scorciatoia già pronta per "successo, nessun valore" — comodo nei test quando un metodo del port non serve davvero (es. un `save` finto che non deve fare nulla).
 
 ## Perché la sintassi sembra strana: `Effect.gen` e `yield*`
 

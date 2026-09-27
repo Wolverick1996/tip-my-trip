@@ -15,7 +15,7 @@ Non c'è distinzione di ruolo nel dominio: chiunque si registri può sia indicar
 
 ## MVP
 
-Riassunto (dettaglio completo in `AGENTS.md`): gestione città conosciute, livello di expertise, lingue, creazione di un viaggio, matching, risultati del matching, profilo dell'esperto, contatti (mock, no chat/integrazioni reali). Dati mock/in-memory, nessun backend/autenticazione reale.
+Riassunto (dettaglio completo in `AGENTS.md`): gestione città conosciute, livello di expertise, lingue, creazione di un viaggio, matching, risultati del matching, profilo dell'esperto, contatti (mock, no chat/integrazioni reali). Dati mock salvati in file JSON locali, nessun backend/autenticazione reale.
 
 ## User journey
 

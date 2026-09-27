@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { CitySearchResult } from "@/app/api/cities/city-search-result"
+import { useCitySearch } from "@/hooks/use-city-search"
 import { EXPERTISE_LEVELS, expertiseLevelLabel, type ExpertiseLevel } from "@/domain/expertise-level"
 import { setKnownCityAction } from "./actions"
 import type { ResolvedKnownCity } from "./resolved-known-city"
@@ -17,49 +18,14 @@ export function AddCityModal({
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const [query, setQuery] = useState("")
-  const [results, setResults] = useState<CitySearchResult[]>([])
-  const [searchFailed, setSearchFailed] = useState(false)
-  const [searching, startSearch] = useTransition()
   const [selected, setSelected] = useState<CitySearchResult | null>(editing?.city ?? null)
   const [level, setLevel] = useState<ExpertiseLevel | null>(editing?.level ?? null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const { results: visibleResults, searching, searchFailed, active: searchActive } = useCitySearch(query, !selected)
 
   useEffect(() => {
     ref.current?.showModal()
   }, [])
-
-  useEffect(() => {
-    if (selected || query.trim().length < 2) {
-      return
-    }
-    const controller = new AbortController()
-    const timeout = setTimeout(() => {
-      startSearch(async () => {
-        try {
-          const response = await fetch(`/api/cities?q=${encodeURIComponent(query)}`, {
-            signal: controller.signal,
-          })
-          if (!response.ok) {
-            setResults([])
-            setSearchFailed(true)
-            return
-          }
-          setResults((await response.json()) as CitySearchResult[])
-          setSearchFailed(false)
-        } catch {
-          if (!controller.signal.aborted) {
-            setResults([])
-            setSearchFailed(true)
-          }
-        }
-      })
-    }, 200)
-    return () => {
-      clearTimeout(timeout)
-      controller.abort()
-    }
-  }, [query, selected])
-
-  const visibleResults = query.trim().length >= 2 ? results : []
 
   function handleSelect(city: CitySearchResult) {
     const alreadyKnown = knownCities.find((known) => known.city.id === city.id)
@@ -70,7 +36,6 @@ export function AddCityModal({
   function handleBack() {
     setSelected(null)
     setLevel(null)
-    setResults([])
     setQuery("")
   }
 
@@ -78,7 +43,11 @@ export function AddCityModal({
     if (!selected || !level) {
       return
     }
-    await setKnownCityAction(selected.id, level)
+    const result = await setKnownCityAction({ cityId: selected.id, level })
+    if (result.error) {
+      setSaveError(result.error)
+      return
+    }
     ref.current?.close()
   }
 
@@ -112,7 +81,7 @@ export function AddCityModal({
           {!searching && searchFailed && (
             <p className="text-sm text-red-600">Ricerca non disponibile, riprova.</p>
           )}
-          {!searching && !searchFailed && query.trim().length >= 2 && visibleResults.length === 0 && (
+          {!searching && !searchFailed && searchActive && visibleResults.length === 0 && (
             <p className="text-sm text-zinc-500">Nessuna città trovata.</p>
           )}
           <ul className="max-h-48 overflow-y-auto">
@@ -156,6 +125,11 @@ export function AddCityModal({
               </label>
             ))}
           </fieldset>
+          {saveError && (
+            <p role="alert" className="text-sm text-red-600">
+              {saveError}
+            </p>
+          )}
           <div className="flex items-center justify-between">
             <button type="button" onClick={handleBack} className="text-sm text-zinc-500 hover:underline">
               ← Cambia città

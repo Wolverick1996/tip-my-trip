@@ -1,4 +1,5 @@
-import { ManagedRuntime } from "effect"
-import { InMemoryTravelerRepositoryLive } from "./infrastructure/in-memory-traveler-repository"
+import { Layer, ManagedRuntime } from "effect"
+import { FileTravelerRepositoryLive } from "./infrastructure/file-traveler-repository"
+import { FileTripRepositoryLive } from "./infrastructure/file-trip-repository"
 
-export const runtime = ManagedRuntime.make(InMemoryTravelerRepositoryLive)
+export const runtime = ManagedRuntime.make(Layer.mergeAll(FileTravelerRepositoryLive, FileTripRepositoryLive))

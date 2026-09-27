@@ -19,3 +19,6 @@ npm-debug.log*
 .idea/
 
 coverage/
+
+# dati del prototipo (repository su file)
+.data/

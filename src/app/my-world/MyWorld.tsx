@@ -8,8 +8,8 @@ import { AddCityModal } from "./AddCityModal"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 import { removeKnownCityAction } from "./actions"
 
-// Anche i client component vengono pre-renderizzati sul server, per mandare subito dell'HTML, e poi vengono
-// "idratati" nel browser. Leaflet usa `window` appena importato: senza `ssr: false` quel pre-rendering fallirebbe.
+// Anche i client component vengono pre-renderizzati sul server, per mandare subito dell'HTML, e poi vengono "idratati" nel browser.
+// Leaflet usa `window` appena importato: senza `ssr: false` quel pre-rendering fallirebbe.
 const WorldMap = dynamic(() => import("./WorldMap").then((mod) => mod.WorldMap), { ssr: false })
 
 export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
@@ -37,7 +37,11 @@ export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
     if (!window.confirm(`Rimuovere ${entry.city.name} dalle città conosciute?`)) {
       return
     }
-    await removeKnownCityAction(entry.city.id)
+    const result = await removeKnownCityAction(entry.city.id)
+    if (result.error) {
+      window.alert(result.error)
+      return
+    }
     router.refresh()
   }
 

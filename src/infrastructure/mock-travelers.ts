@@ -1,7 +1,7 @@
 import type { Traveler } from "@/domain/traveler"
 
 /**
- * Traveler finti sempre presenti, e stato iniziale del repository in memoria.
+ * Traveler finti, copiati nel file dei traveler al primo avvio (vedi FileTravelerRepositoryLive).
  * @prototype In produzione i dati stanno nel database.
  */
 export const mockTravelers: Traveler[] = [

@@ -76,3 +76,46 @@ const query = yield* Schema.decode(CityQuery)(rawQuery)
 **Quando `is` e quando `decode`.**
 - `Schema.is` basta quando serve un controllo sì o no dentro un `if`, e il messaggio d'errore lo si scrive a mano, come in `registerTraveler`.
 - `Schema.decode` serve quando si vuole il valore trasformato, oppure quando il fallimento deve entrare nel flusso di Effect.
+
+## Validare oggetti che arrivano da fuori: `Schema.Struct` e `Schema.decodeUnknown…`
+
+Usato per: i dati che una Server Action riceve dal browser (`createTripAction` in `src/app/my-trips/actions.ts`) e i file JSON letti dagli adapter (`src/infrastructure/json-file.ts`, `file-traveler-repository.ts`, `file-trip-repository.ts`).
+
+**Il problema.** I tipi TypeScript esistono solo in compilazione. Quando i dati arrivano da fuori (la richiesta di un browser, un file su disco) il compilatore non può garantire niente: una Server Action è di fatto un endpoint pubblico, e un file può essere stato modificato a mano. Un cast come `input as CreateTripInput` fa solo tacere il compilatore; se i dati hanno una forma diversa, l'errore salta fuori più avanti, lontano dalla causa.
+
+**Descrivere la forma di un oggetto.** Oltre agli schemi per valori singoli (`Schema.String`, `Schema.Literal`) ce ne sono per strutture composte:
+
+```ts
+const CreateTripInput = Schema.Struct({
+  title: Schema.String,
+  cityIds: Schema.Array(Schema.String),
+  expertIds: Schema.Array(Schema.String),
+})
+```
+
+- `Schema.Struct({ … })` descrive un oggetto con quei campi, ognuno con il suo schema.
+- `Schema.Array(schema)` descrive un array i cui elementi rispettano `schema`.
+- `Schema.optional(schema)` rende un campo facoltativo (es. `title` di un viaggio salvato).
+- `Schema.mutable(…)` fa sì che il tipo risultante abbia array modificabili invece che `readonly`: di default gli schemi producono tipi `readonly`, e senza `mutable` non sarebbero assegnabili ai tipi del dominio (`Traveler[]`, `Trip[]`), che usano array normali.
+
+Dallo schema TypeScript ricava anche il tipo, quindi descrizione a runtime e tipo in compilazione non possono andare fuori sincrono.
+
+**Controllare un valore sconosciuto.** Le funzioni `decodeUnknown…` accettano un `unknown`, verificano che rispetti lo schema e restituiscono il valore tipizzato. Cambia solo il modo in cui segnalano il fallimento:
+
+| Funzione | Se i dati non vanno bene | Usata in |
+|---|---|---|
+| `Schema.decodeUnknownEither(schema)(valore)` | restituisce un `Either`: `Left` con un `ParseError`, `Right` con il valore | `createTripAction`: un input sbagliato diventa un messaggio d'errore per l'utente |
+| `Schema.decodeUnknownSync(schema)(valore)` | lancia un'eccezione | `readJsonFile`: un file corrotto è un guasto, e dentro `Effect.sync` diventa un defect (vedi `02-typed-errors.md`) |
+| `Schema.decode(schema)(valore)` | restituisce un `Effect` che fallisce con `ParseError` | la route `GET /api/cities` (sezione sopra) |
+
+```ts
+const decoded = Schema.decodeUnknownEither(CreateTripInput)(input)
+if (Either.isLeft(decoded)) {
+  return { error: "Dati del viaggio non validi." }
+}
+const { title, cityIds, expertIds } = decoded.right // tipizzati
+```
+
+La scelta dipende da cosa significa il fallimento in quel punto: un errore previsto da mostrare (`Either`), un guasto da non gestire (`Sync`, che lancia), o un passo dentro un programma Effect (`decode`).
+
+**Alternativa in TypeScript puro.** Controlli scritti a mano campo per campo (`typeof input.title === "string" && Array.isArray(input.cityIds) && …`), facili da dimenticare quando il tipo cambia, oppure una libreria di validazione in più. `Schema` fa già parte di `effect`.

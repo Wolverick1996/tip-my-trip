@@ -7,3 +7,7 @@ export class TravelerNotFoundError extends Data.TaggedError("TravelerNotFoundErr
 export class InvalidRegistrationError extends Data.TaggedError("InvalidRegistrationError")<{
   reason: string
 }> {}
+
+export class InvalidTripError extends Data.TaggedError("InvalidTripError")<{
+  reason: string
+}> {}

@@ -74,7 +74,6 @@ test("non conta le città conosciute dal candidato che non fanno parte del viagg
 
   expect(results[0].matchedCities).toEqual([{ cityId: "madrid", level: "expert" }])
   // coverage = (1/1)*60 = 60, expertise = (2/3)*40 = 26.67 → round(86.67) = 87
-  // (se "tokyo" contasse per errore, il punteggio sarebbe diverso)
   expect(results[0].score).toBe(87)
 })
 
