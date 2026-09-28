@@ -93,6 +93,12 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   **Limiti accettati**: la validazione scarta forma e valori non ammessi, non tutte le regole di business, che restano nello use case o nel dominio (es. `InvalidTripError`).
 
+- **Nessun `error.tsx`/`not-found.tsx`: si usano le pagine di default di Next**
+
+  Gli errori previsti non arrivano mai a un error boundary: sessione mancante → `/register`, risultato assente → `undefined`, Server Action → `{ error }`. Restano solo i *defect* (es. file JSON corrotto), per cui la pagina 500 di default basta: in produzione non espone dettagli e il `digest` permette di ritrovare l'errore nei log.
+
+  **Perché**: una pagina personalizzata cambierebbe solo il testo di un caso che non deve succedere.
+
 ## UI e design system
 
 - **Mantine per i componenti interattivi, Tailwind per il layout: dipendenza npm, non codice vendorizzato**
@@ -103,22 +109,26 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
 ## Route e sessione
 
-- **Route `/register`, `/my-world` e `/my-trips`, e il proxy decide dove mandarti**
+- **Route `/register`, `/my-world` e `/my-trips`: il proxy guarda il cookie, le pagine il profilo**
 
-  "Il mio mondo" è `/my-world`, "I miei viaggi" è `/my-trips`, collegate da un'intestazione comune; non esiste una `page.tsx` di root. `src/proxy.ts` contiene tutta la regola "dove devi stare" e reindirizza con un solo salto:
+  "Il mio mondo" è `/my-world`, "I miei viaggi" è `/my-trips`, collegate da un'intestazione comune; non esiste una `page.tsx` di root. `src/proxy.ts` fa solo il controllo veloce, sulla presenza del cookie:
 
   - senza cookie, qualunque pagina diversa da `/register` (compresa `/`) porta a `/register`;
-  - con il cookie, `/` e `/register` portano a `/my-world`.
+  - con il cookie, `/` porta a `/my-world`.
+
+  Il controllo vero, che il profilo esista, lo fanno le pagine: `getCurrentUser()` rimanda a `/register` se il profilo non c'è, e `/register` rimanda a `/my-world` se c'è.
 
   Le route sotto `/api/` non vengono mai reindirizzate: sono chiuse per default e si aprono una per una in `PUBLIC_API_PATHS` (oggi solo `/api/cities`). Le altre, senza cookie, ricevono `401` in JSON.
 
-  **Perché**: una sola regola in un solo punto, così le pagine possono dare per scontato che il cookie ci sia. Per le API un redirect non ha senso: una `fetch` finirebbe a leggere come JSON la pagina HTML di `/register`.
+  **Perché**: il proxy non legge il repository, così non paga una lettura del file a ogni richiesta e non dipende da `runtime`. Per le API un redirect non ha senso: una `fetch` finirebbe a leggere come JSON la pagina HTML di `/register`.
 
-  **Scartato**: lasciar passare tutto ciò che inizia con `/api/`, perché una nuova API privata resterebbe pubblica finché qualcuno non si ricorda di proteggerla.
+  **Scartato**:
+  - lasciar passare tutto ciò che inizia con `/api/`, perché una nuova API privata resterebbe pubblica finché qualcuno non si ricorda di proteggerla;
+  - una route `GET /logout` che cancella il cookie orfano: una `GET` che modifica lo stato, solo per un caso che la nuova registrazione risolve comunque sovrascrivendo il cookie.
 
 - **Persistenza: repository salvati in file JSON locali, cookie con il solo id**
 
-  Traveler e viaggi sono salvati in file JSON sul server, in `.data/` (ignorata da git): `FileTravelerRepositoryLive` e `FileTripRepositoryLive` in `infrastructure/` implementano i port `TravelerRepository` e `TripRepository`, rileggendo il file a ogni operazione e riscrivendolo intero a ogni modifica (`writeJsonFile` scrive su un file temporaneo e poi lo rinomina, per non lasciare un JSON troncato se il processo si interrompe a metà scrittura); al primo avvio i traveler partono dai mock. Il cookie `tipmytrip_user` contiene solo l'id del traveler, dura un anno, è `httpOnly` e `sameSite: "lax"`, ma non `secure` (demo su http://localhost); `findCurrentUser()` lo legge e carica il traveler dal repository. Se il profilo non esiste più (es. `.data/` cancellata), pagine e Server Action passano da `/logout` (cancella il cookie, rimanda alla registrazione), `/api/trip-matches` risponde `401`. Gli stati restano due: senza cookie si va alla registrazione, con il cookie si usa l'app.
+  Traveler e viaggi sono salvati in file JSON sul server, in `.data/` (ignorata da git): `FileTravelerRepositoryLive` e `FileTripRepositoryLive` in `infrastructure/` implementano i port `TravelerRepository` e `TripRepository`, rileggendo il file a ogni operazione e riscrivendolo intero a ogni modifica (`writeJsonFile` scrive su un file temporaneo e poi lo rinomina, per non lasciare un JSON troncato se il processo si interrompe a metà scrittura); al primo avvio i traveler partono dai mock. Il cookie `tipmytrip_user` contiene solo l'id del traveler, dura un anno, è `httpOnly` e `sameSite: "lax"`, ma non `secure` (demo su http://localhost); `findCurrentUser()` lo legge e carica il traveler dal repository. Se il profilo non esiste più (es. `.data/` cancellata), pagine e Server Action rimandano a `/register` (il cookie orfano resta finché la nuova registrazione non lo sovrascrive), `/api/trip-matches` risponde `401`. Gli stati restano due: senza cookie si va alla registrazione, con il cookie si usa l'app.
 
   **Perché**:
   - i dati sopravvivono ai riavvii senza limiti di spazio;

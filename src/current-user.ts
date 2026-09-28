@@ -23,11 +23,11 @@ export async function findCurrentUser(): Promise<Traveler | undefined> {
   return Either.isRight(result) ? result.right : undefined
 }
 
-/** Come `findCurrentUser`, ma per pagine e Server Action: se il profilo non c'è chiude la sessione e rimanda alla registrazione. */
+/** Come `findCurrentUser`, ma per pagine e Server Action: se il profilo non c'è rimanda alla registrazione. */
 export async function getCurrentUser(): Promise<Traveler> {
   const traveler = await findCurrentUser()
   if (!traveler) {
-    redirect("/logout")
+    redirect("/register")
   }
   return traveler
 }

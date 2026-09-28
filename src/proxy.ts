@@ -17,7 +17,7 @@ export function proxy(request: NextRequest) {
   if (!hasUser && pathname !== "/register") {
     return NextResponse.redirect(new URL("/register", request.url))
   }
-  if (hasUser && (pathname === "/" || pathname === "/register")) {
+  if (hasUser && pathname === "/") {
     return NextResponse.redirect(new URL("/my-world", request.url))
   }
 

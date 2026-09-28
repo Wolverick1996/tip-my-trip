@@ -128,7 +128,7 @@ export function CreateTripModal({
     fetch(`/api/trip-matches?cityIds=${cities.map((city) => city.id).join(",")}`, { signal: controller.signal })
       .then(async (response) => {
         if (response.status === 401) {
-          router.replace("/logout")
+          router.replace("/register")
           return
         }
         if (!response.ok) {

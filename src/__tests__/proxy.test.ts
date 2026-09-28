@@ -11,7 +11,6 @@ function request(path: string, withCookie: boolean): NextRequest {
 test.each([
   ["/my-world", false, "/register"],
   ["/", true, "/my-world"],
-  ["/register", true, "/my-world"],
 ])("%s (cookie: %s) reindirizza a %s", (path, withCookie, destination) => {
   const response = proxy(request(path, withCookie))
 
@@ -21,6 +20,7 @@ test.each([
 
 test.each([
   ["/register", false],
+  ["/register", true],
   ["/my-world", true],
   ["/api/cities", false],
   ["/api/privata", true],
