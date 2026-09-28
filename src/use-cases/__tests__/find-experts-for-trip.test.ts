@@ -1,7 +1,6 @@
-import { Effect, Layer } from "effect"
-import { TravelerNotFoundError } from "@/domain/errors"
-import { TravelerRepository } from "@/domain/traveler-repository"
+import { Effect } from "effect"
 import type { Traveler } from "@/domain/traveler"
+import { testTravelerRepositoryLayer } from "./test-repository-layers"
 import { findExpertsForTrip } from "../find-experts-for-trip"
 
 const testTravelers: Traveler[] = [
@@ -21,24 +20,10 @@ const testTravelers: Traveler[] = [
   },
 ]
 
-function testLayer(travelers: Traveler[]) {
-  return Layer.succeed(
-    TravelerRepository,
-    TravelerRepository.of({
-      findAll: () => Effect.succeed(travelers),
-      findById: (id) => {
-        const found = travelers.find((traveler) => traveler.id === id)
-        return found ? Effect.succeed(found) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
-      },
-      save: () => Effect.void,
-    }),
-  )
-}
-
 test("restituisce gli esperti che conoscono le città del viaggio, calcolati da matchTravelers", async () => {
   const program = findExpertsForTrip(["madrid"], "organizer-1")
 
-  const results = await Effect.runPromise(Effect.provide(program, testLayer(testTravelers)))
+  const results = await Effect.runPromise(Effect.provide(program, testTravelerRepositoryLayer(testTravelers)))
 
   expect(results).toHaveLength(1)
   expect(results[0].traveler.name).toBe("Marco")
@@ -47,7 +32,7 @@ test("restituisce gli esperti che conoscono le città del viaggio, calcolati da 
 test("restituisce una lista vuota se nessuno conosce la città", async () => {
   const program = findExpertsForTrip(["tokyo"], "organizer-1")
 
-  const results = await Effect.runPromise(Effect.provide(program, testLayer(testTravelers)))
+  const results = await Effect.runPromise(Effect.provide(program, testTravelerRepositoryLayer(testTravelers)))
 
   expect(results).toEqual([])
 })
@@ -55,7 +40,9 @@ test("restituisce una lista vuota se nessuno conosce la città", async () => {
 test("fallisce con TravelerNotFoundError se l'organizzatore non esiste", async () => {
   const program = findExpertsForTrip(["madrid"], "ghost")
 
-  const error = await Effect.runPromise(Effect.flip(Effect.provide(program, testLayer(testTravelers))))
+  const error = await Effect.runPromise(
+    Effect.flip(Effect.provide(program, testTravelerRepositoryLayer(testTravelers))),
+  )
 
   expect(error._tag).toBe("TravelerNotFoundError")
 })
@@ -80,7 +67,9 @@ test("non propone l'organizzatore come match di se stesso, anche se conosce la c
 
   const program = findExpertsForTrip(["madrid"], "organizer-1")
 
-  const results = await Effect.runPromise(Effect.provide(program, testLayer(travelersWithSelfKnowingOrganizer)))
+  const results = await Effect.runPromise(
+    Effect.provide(program, testTravelerRepositoryLayer(travelersWithSelfKnowingOrganizer)),
+  )
 
   expect(results.map((result) => result.traveler.id)).not.toContain("organizer-1")
   expect(results).toHaveLength(1)
@@ -109,7 +98,7 @@ test("con più città, un esperto che le copre tutte viene prima di uno che ne c
   ]
 
   const results = await Effect.runPromise(
-    Effect.provide(findExpertsForTrip(["madrid", "lisbona"], "organizer-1"), testLayer(travelers)),
+    Effect.provide(findExpertsForTrip(["madrid", "lisbona"], "organizer-1"), testTravelerRepositoryLayer(travelers)),
   )
 
   expect(results.map((result) => result.traveler.name)).toEqual(["Bruno", "Anna"])

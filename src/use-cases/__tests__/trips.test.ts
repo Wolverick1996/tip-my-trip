@@ -1,9 +1,7 @@
 import { Effect, Layer } from "effect"
-import { TravelerNotFoundError } from "@/domain/errors"
 import type { Traveler } from "@/domain/traveler"
-import { TravelerRepository } from "@/domain/traveler-repository"
 import type { Trip } from "@/domain/trip"
-import { TripRepository } from "@/domain/trip-repository"
+import { testTravelerRepositoryLayer, testTripRepositoryLayer } from "./test-repository-layers"
 import { createTrip } from "../create-trip"
 import { deleteTrip } from "../delete-trip"
 import { listTrips } from "../list-trips"
@@ -29,31 +27,7 @@ function testTravelers(): Traveler[] {
 }
 
 function testLayer(trips: Trip[], travelers = testTravelers()) {
-  return Layer.mergeAll(
-    Layer.succeed(
-      TripRepository,
-      TripRepository.of({
-        findByOrganizer: (organizerId) => Effect.sync(() => trips.filter((trip) => trip.organizerId === organizerId)),
-        save: (trip) => Effect.sync(() => void trips.push(trip)),
-        delete: (tripId, organizerId) =>
-          Effect.sync(() => {
-            const index = trips.findIndex((trip) => trip.id === tripId && trip.organizerId === organizerId)
-            if (index !== -1) trips.splice(index, 1)
-          }),
-      }),
-    ),
-    Layer.succeed(
-      TravelerRepository,
-      TravelerRepository.of({
-        findAll: () => Effect.succeed(travelers),
-        findById: (id) => {
-          const traveler = travelers.find((candidate) => candidate.id === id)
-          return traveler ? Effect.succeed(traveler) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
-        },
-        save: () => Effect.void,
-      }),
-    ),
-  )
+  return Layer.mergeAll(testTripRepositoryLayer(trips), testTravelerRepositoryLayer(travelers))
 }
 
 function trip(overrides: Partial<Trip> = {}): Trip {

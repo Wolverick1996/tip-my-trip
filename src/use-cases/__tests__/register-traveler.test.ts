@@ -1,30 +1,15 @@
-import { Effect, Layer } from "effect"
-import { TravelerNotFoundError } from "@/domain/errors"
-import { TravelerRepository } from "@/domain/traveler-repository"
+import { Effect } from "effect"
 import type { Traveler } from "@/domain/traveler"
+import { testTravelerRepositoryLayer } from "./test-repository-layers"
 import { registerTraveler } from "../register-traveler"
-
-function testLayer(saved: Traveler[]) {
-  return Layer.succeed(
-    TravelerRepository,
-    TravelerRepository.of({
-      findAll: () => Effect.succeed(saved),
-      findById: (id) => {
-        const found = saved.find((traveler) => traveler.id === id)
-        return found ? Effect.succeed(found) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
-      },
-      save: (traveler) =>
-        Effect.sync(() => {
-          saved.push(traveler)
-        }),
-    }),
-  )
-}
 
 test("fallisce se il nome è vuoto", async () => {
   const error = await Effect.runPromise(
     Effect.flip(
-      Effect.provide(registerTraveler({ name: "  ", languages: ["it"], contact: { email: "a@b.com" } }), testLayer([])),
+      Effect.provide(
+        registerTraveler({ name: "  ", languages: ["it"], contact: { email: "a@b.com" } }),
+        testTravelerRepositoryLayer([]),
+      ),
     ),
   )
 
@@ -34,7 +19,10 @@ test("fallisce se il nome è vuoto", async () => {
 test("fallisce se non è selezionata nessuna lingua", async () => {
   const error = await Effect.runPromise(
     Effect.flip(
-      Effect.provide(registerTraveler({ name: "Anna", languages: [], contact: { email: "a@b.com" } }), testLayer([])),
+      Effect.provide(
+        registerTraveler({ name: "Anna", languages: [], contact: { email: "a@b.com" } }),
+        testTravelerRepositoryLayer([]),
+      ),
     ),
   )
 
@@ -46,7 +34,7 @@ test("fallisce se una lingua selezionata non è supportata", async () => {
     Effect.flip(
       Effect.provide(
         registerTraveler({ name: "Anna", languages: ["xx"], contact: { email: "a@b.com" } }),
-        testLayer([]),
+        testTravelerRepositoryLayer([]),
       ),
     ),
   )
@@ -56,7 +44,12 @@ test("fallisce se una lingua selezionata non è supportata", async () => {
 
 test("fallisce se non c'è nessun contatto (né WhatsApp né email)", async () => {
   const error = await Effect.runPromise(
-    Effect.flip(Effect.provide(registerTraveler({ name: "Anna", languages: ["it"], contact: {} }), testLayer([]))),
+    Effect.flip(
+      Effect.provide(
+        registerTraveler({ name: "Anna", languages: ["it"], contact: {} }),
+        testTravelerRepositoryLayer([]),
+      ),
+    ),
   )
 
   expect(error._tag).toBe("InvalidRegistrationError")
@@ -67,7 +60,7 @@ test("fallisce se l'email non è in un formato valido", async () => {
     Effect.flip(
       Effect.provide(
         registerTraveler({ name: "Anna", languages: ["it"], contact: { email: "non-una-email" } }),
-        testLayer([]),
+        testTravelerRepositoryLayer([]),
       ),
     ),
   )
@@ -84,7 +77,7 @@ test("fallisce se il numero WhatsApp non è in un formato valido", async () => {
           languages: ["it"],
           contact: { whatsApp: "non un numero" },
         }),
-        testLayer([]),
+        testTravelerRepositoryLayer([]),
       ),
     ),
   )
@@ -100,7 +93,7 @@ test("accetta un numero WhatsApp con spazi, in formato internazionale, e lo salv
         languages: ["it"],
         contact: { whatsApp: "+39 333 123 4567" },
       }),
-      testLayer([]),
+      testTravelerRepositoryLayer([]),
     ),
   )
 
@@ -117,7 +110,7 @@ test("registra un traveler valido, con knownCities vuoto, e lo salva nel reposit
         languages: ["it", "en"],
         contact: { email: "a@b.com" },
       }),
-      testLayer(saved),
+      testTravelerRepositoryLayer(saved),
     ),
   )
 

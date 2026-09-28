@@ -17,7 +17,3 @@ Stato reale del progetto: cosa è stato fatto, cosa manca. Si aggiorna solo quan
 - ✅ **Trip Planner** ("I miei viaggi", `/my-trips`): viaggi con una o più città e titolo facoltativo, creati in un modale a due passi (città, poi esperti ordinati con selezione multipla e riepilogo delle città coperte e scoperte); ogni viaggio mostra città ed esperti scelti con contatti e lingue, e si può eliminare. Traveler e viaggi sono salvati in file JSON locali (`.data/`), così sopravvivono ai riavvii; il cookie contiene solo l'id dell'utente. Intestazione comune con i link alle due pagine.
 
 Prossimo blocco di lavoro: da definire, le funzionalità individuate finora sono tutte completate.
-
-## Debito tecnico
-
-- ⬜ **Test double del repository duplicati.** Ogni test di use case ha la sua copia di un repository finto, e le copie divergono già. Ora gli adapter veri sono factory (`makeFileTravelerRepository(filePath, initialTravelers)`, `makeFileTripRepository(filePath)`), quindi i test degli use case potrebbero usare quelle su una cartella temporanea, come fa già `file-repositories.test.ts`, invece delle copie.

@@ -1,28 +1,8 @@
-import { Effect, Layer } from "effect"
-import { TravelerNotFoundError } from "@/domain/errors"
-import { TravelerRepository } from "@/domain/traveler-repository"
+import { Effect } from "effect"
 import type { Traveler } from "@/domain/traveler"
+import { testTravelerRepositoryLayer } from "./test-repository-layers"
 import { removeKnownCity } from "../remove-known-city"
 import { setKnownCity } from "../set-known-city"
-
-function testLayer(travelers: Traveler[]) {
-  return Layer.succeed(
-    TravelerRepository,
-    TravelerRepository.of({
-      findAll: () => Effect.succeed(travelers),
-      findById: (id) => {
-        const found = travelers.find((traveler) => traveler.id === id)
-        return found ? Effect.succeed(found) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
-      },
-      save: (traveler) =>
-        Effect.sync(() => {
-          const index = travelers.findIndex((existing) => existing.id === traveler.id)
-          if (index === -1) travelers.push(traveler)
-          else travelers[index] = traveler
-        }),
-    }),
-  )
-}
 
 function traveler(overrides: Partial<Traveler> = {}): Traveler {
   return {
@@ -39,7 +19,9 @@ describe("setKnownCity", () => {
   test("aggiunge una nuova città conosciuta", async () => {
     const travelers = [traveler()]
 
-    const result = await Effect.runPromise(Effect.provide(setKnownCity("t-1", "1", "base"), testLayer(travelers)))
+    const result = await Effect.runPromise(
+      Effect.provide(setKnownCity("t-1", "1", "base"), testTravelerRepositoryLayer(travelers)),
+    )
 
     expect(result.knownCities).toEqual([{ cityId: "1", level: "base" }])
     expect(travelers[0].knownCities).toEqual([{ cityId: "1", level: "base" }])
@@ -48,14 +30,16 @@ describe("setKnownCity", () => {
   test("aggiorna il livello se la città è già conosciuta, invece di duplicarla", async () => {
     const travelers = [traveler({ knownCities: [{ cityId: "1", level: "base" }] })]
 
-    const result = await Effect.runPromise(Effect.provide(setKnownCity("t-1", "1", "local"), testLayer(travelers)))
+    const result = await Effect.runPromise(
+      Effect.provide(setKnownCity("t-1", "1", "local"), testTravelerRepositoryLayer(travelers)),
+    )
 
     expect(result.knownCities).toEqual([{ cityId: "1", level: "local" }])
   })
 
   test("fallisce con TravelerNotFoundError se il traveler non esiste", async () => {
     const error = await Effect.runPromise(
-      Effect.flip(Effect.provide(setKnownCity("non-esiste", "1", "base"), testLayer([]))),
+      Effect.flip(Effect.provide(setKnownCity("non-esiste", "1", "base"), testTravelerRepositoryLayer([]))),
     )
 
     expect(error._tag).toBe("TravelerNotFoundError")
@@ -73,7 +57,9 @@ describe("removeKnownCity", () => {
       }),
     ]
 
-    const result = await Effect.runPromise(Effect.provide(removeKnownCity("t-1", "1"), testLayer(travelers)))
+    const result = await Effect.runPromise(
+      Effect.provide(removeKnownCity("t-1", "1"), testTravelerRepositoryLayer(travelers)),
+    )
 
     expect(result.knownCities).toEqual([{ cityId: "2", level: "expert" }])
   })
@@ -81,14 +67,16 @@ describe("removeKnownCity", () => {
   test("rimuovere una città non conosciuta non cambia nulla", async () => {
     const travelers = [traveler({ knownCities: [{ cityId: "1", level: "base" }] })]
 
-    const result = await Effect.runPromise(Effect.provide(removeKnownCity("t-1", "non-esiste"), testLayer(travelers)))
+    const result = await Effect.runPromise(
+      Effect.provide(removeKnownCity("t-1", "non-esiste"), testTravelerRepositoryLayer(travelers)),
+    )
 
     expect(result.knownCities).toEqual([{ cityId: "1", level: "base" }])
   })
 
   test("fallisce con TravelerNotFoundError se il traveler non esiste", async () => {
     const error = await Effect.runPromise(
-      Effect.flip(Effect.provide(removeKnownCity("non-esiste", "1"), testLayer([]))),
+      Effect.flip(Effect.provide(removeKnownCity("non-esiste", "1"), testTravelerRepositoryLayer([]))),
     )
 
     expect(error._tag).toBe("TravelerNotFoundError")
