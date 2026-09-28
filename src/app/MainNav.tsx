@@ -1,11 +1,13 @@
 "use client"
 
+import { Button, Group } from "@mantine/core"
+import { IconLuggage, IconWorld } from "@tabler/icons-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 const LINKS = [
-  { href: "/my-world", label: "Il mio mondo" },
-  { href: "/my-trips", label: "I miei viaggi" },
+  { href: "/my-world", label: "Il mio mondo", icon: IconWorld },
+  { href: "/my-trips", label: "I miei viaggi", icon: IconLuggage },
 ]
 
 export function MainNav() {
@@ -16,20 +18,27 @@ export function MainNav() {
   }
 
   return (
-    <nav aria-label="Navigazione principale" className="border-b border-zinc-200 dark:border-zinc-800">
-      <ul className="mx-auto flex max-w-2xl gap-6 px-6 py-3 text-sm">
-        {LINKS.map((link) => (
-          <li key={link.href}>
-            <Link
+    <Group component="nav" aria-label="Navigazione principale" justify="center" py="md">
+      <Group bg="white" p={4} gap={4} className="rounded-full">
+        {LINKS.map((link) => {
+          const active = pathname === link.href
+          return (
+            <Button
+              key={link.href}
+              component={Link}
               href={link.href}
-              aria-current={pathname === link.href ? "page" : undefined}
-              className="aria-[current=page]:font-semibold hover:underline"
+              aria-current={active ? "page" : undefined}
+              variant={active ? "filled" : "subtle"}
+              color={active ? "lagoon" : "cream"}
+              radius="xl"
+              size="md"
+              leftSection={<link.icon size={16} />}
             >
               {link.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+            </Button>
+          )
+        })}
+      </Group>
+    </Group>
   )
 }

@@ -1,6 +1,8 @@
 import { Suspense } from "react"
+import { Text } from "@mantine/core"
 import { getCurrentUser } from "@/current-user"
 import { getCity } from "@/use-cases/get-city"
+import { PageWrapper } from "@/app/components/PageWrapper"
 import { MyWorld } from "./MyWorld"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 import { WelcomeOnboarding } from "./WelcomeOnboarding"
@@ -14,15 +16,17 @@ export default async function MyWorldPage() {
   })
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <PageWrapper>
       <Suspense fallback={null}>
         <WelcomeOnboarding />
       </Suspense>
 
       <h1 className="text-xl font-semibold">Il mio mondo</h1>
-      <p className="mt-2 text-zinc-600 dark:text-zinc-400">Le città che conosci, sulla mappa e in elenco.</p>
+      <Text c="dimmed" mt="sm">
+        Le città che conosci, sulla mappa e in elenco.
+      </Text>
 
       <MyWorld knownCities={knownCities} />
-    </div>
+    </PageWrapper>
   )
 }

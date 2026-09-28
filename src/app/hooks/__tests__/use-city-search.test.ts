@@ -33,7 +33,7 @@ test("con meno di 2 caratteri non cerca", async () => {
     await jest.advanceTimersByTimeAsync(200)
   })
 
-  expect(result.current.active).toBe(false)
+  expect(result.current.canSearch).toBe(false)
   expect(fetch).not.toHaveBeenCalled()
 })
 

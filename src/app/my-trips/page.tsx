@@ -1,11 +1,12 @@
+import { Text } from "@mantine/core"
 import { getCurrentUser } from "@/current-user"
-import { getLanguageName } from "@/domain/language"
 import { cityCoverage, tripTitle } from "@/domain/trip"
 import { runtime } from "@/runtime"
 import { getCity } from "@/use-cases/get-city"
 import { listTrips } from "@/use-cases/list-trips"
+import { PageWrapper } from "@/app/components/PageWrapper"
 import type { ResolvedTrip } from "./resolved-trip"
-import { Trips } from "./Trips"
+import { MyTrips } from "./MyTrips"
 
 export default async function TripsPage() {
   const organizer = await getCurrentUser()
@@ -33,18 +34,24 @@ export default async function TripsPage() {
       experts: experts.map((expert) => ({
         id: expert.id,
         name: expert.name,
-        languages: expert.languages.map(getLanguageName),
+        knownCities: trip.cityIds.flatMap((cityId) => {
+          const knownCity = expert.knownCities.find((known) => known.cityId === cityId)
+          return knownCity ? [{ id: cityId, name: cityName(cityId), level: knownCity.level }] : []
+        }),
+        languages: expert.languages.filter((language) => organizer.languages.includes(language)),
         contact: expert.contact,
       })),
     }
   })
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <PageWrapper>
       <h1 className="text-xl font-semibold">I miei viaggi</h1>
-      <p className="mt-2 text-zinc-600 dark:text-zinc-400">Scegli le città e trova chi le conosce davvero.</p>
+      <Text c="dimmed" mt="sm">
+        Scegli le città e trova chi le conosce davvero.
+      </Text>
 
-      <Trips trips={trips} organizerCityIds={organizerCityIds} />
-    </div>
+      <MyTrips trips={trips} organizerCityIds={organizerCityIds} />
+    </PageWrapper>
   )
 }

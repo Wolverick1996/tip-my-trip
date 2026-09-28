@@ -1,10 +1,11 @@
 import { RegisterForm } from "./RegisterForm"
+import { PageWrapper } from "@/app/components/PageWrapper"
 
 export default function RegisterPage() {
   return (
-    <div className="mx-auto max-w-xl p-6">
+    <PageWrapper>
       <h1 className="text-xl font-semibold">Registrati</h1>
       <RegisterForm />
-    </div>
+    </PageWrapper>
   )
 }

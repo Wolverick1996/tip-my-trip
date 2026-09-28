@@ -25,7 +25,7 @@ Dati mock, salvati in file JSON locali (`.data/`) per sopravvivere ai riavvii: n
 
 ## Stack tecnico
 
-Next.js, React, TypeScript, Effect, Jest, Tailwind CSS.
+Next.js, React, TypeScript, Effect, Jest, Tailwind CSS, Mantine.
 
 ## Architettura (principi generali)
 

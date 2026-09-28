@@ -10,6 +10,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@mantine/core": "^9.6.3",
+    "@mantine/form": "^9.6.3",
+    "@mantine/hooks": "^9.6.3",
+    "@mantine/modals": "^9.6.3",
+    "@mantine/notifications": "^9.6.3",
+    "@tabler/icons-react": "^3.48.0",
     "all-the-cities": "^3.1.0",
     "effect": "^3.22.2",
     "i18n-iso-countries": "^7.14.0",

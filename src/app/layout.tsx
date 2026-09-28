@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { MantineProvider, mantineHtmlProps } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
+import { Notifications } from "@mantine/notifications";
+import { Lora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { MainNav } from "./MainNav";
+import { theme } from "./theme";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const googleSans = localFont({
+  src: "./fonts/google-sans-latin.woff2",
+  variable: "--font-google-sans",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
 });
 
@@ -22,11 +27,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="it"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${googleSans.variable} ${lora.variable} h-full antialiased`}
+      {...mantineHtmlProps}
     >
       <body className="min-h-full flex flex-col">
-        <MainNav />
-        {children}
+        <MantineProvider theme={theme} forceColorScheme="light">
+          <ModalsProvider>
+            <Notifications />
+            <MainNav />
+            {children}
+          </ModalsProvider>
+        </MantineProvider>
       </body>
     </html>
   );

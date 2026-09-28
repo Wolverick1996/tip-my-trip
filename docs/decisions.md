@@ -4,6 +4,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
 - [Dominio e matching](#dominio-e-matching)
 - [Struttura e convenzioni](#struttura-e-convenzioni)
+- [UI e design system](#ui-e-design-system)
 - [Route e sessione](#route-e-sessione)
 - [Città: catalogo, ricerca, nomi](#città-catalogo-ricerca-nomi)
 - [Viaggi](#viaggi)
@@ -48,9 +49,9 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   ```
   src/
-    app/              # routing Next.js e componenti delle singole route (Presentation)
-    components/       # componenti condivisi tra più route (oggi non esiste)
-    hooks/            # hook React condivisi tra più route (es. useCitySearch)
+    app/              # routing Next.js e codice Presentation
+      components/     # componenti condivisi tra più route
+      hooks/          # hook React condivisi tra più route (es. useCitySearch)
     domain/           # tipi, regole pure, port, errori tipizzati
     use-cases/        # un file per use case
     infrastructure/   # adapter dei port (su file JSON), catalogo città, dati mock
@@ -63,7 +64,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
   - I port stanno in `domain/`: è il dominio a dichiarare di cosa ha bisogno, l'infrastruttura lo implementa. Così `domain/` non dipende da React, Next.js né dalle implementazioni concrete, e si testa in isolamento.
   - La Presentation (`app/`) non importa mai da `infrastructure/`: passa sempre da uno use case, anche quando è un semplice inoltro (es. `getCity`), così cambiare un adapter non tocca le pagine.
   - `infrastructure/` è piatta: sottocartelle servirebbero solo con più implementazioni dello stesso port (es. su file vs su database).
-  - Un componente sta in `src/components/`, un hook in `src/hooks/`, solo se lo importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no.
+  - Un componente applicativo sta in `src/app/components/`, un hook in `src/app/hooks/`, solo se lo importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no. Le primitive di interfaccia non rientrano in questa regola: vengono da `@mantine/core`, non sono file del progetto (vedi "UI e design system").
   - I dati di riferimento senza logica né implementazioni alternative (lingue selezionabili in `domain/language.ts`, livelli in `domain/expertise-level.ts`, catalogo città in `infrastructure/city-catalog.ts`) sono esportati direttamente, senza port. Lingue e livelli stanno in `domain/` perché sono scelte del prodotto; il catalogo città sta in `infrastructure/` perché è un dataset esterno letto da disco (con `fs`, solo lato server).
   - Il nome del cookie sta da solo in `user-cookie.ts` perché lo importa anche `proxy.ts`: prenderlo da `current-user.ts` trascinerebbe nel proxy anche `runtime` e `next/headers`.
   - I nomi leggibili dei valori di dominio stanno accanto al tipo (`getLanguageName`, `expertiseLevelLabel`, `EXPERTISE_LEVELS`): "Base", "Expert", "Local" sono vocabolario del prodotto, non di una schermata.
@@ -91,6 +92,14 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
   **Scartato**: parametro `unknown`. Non aggiunge protezione, che viene dalla validazione non dal tipo, ma fa perdere a `tsc` il controllo sulle chiamate interne. Un tipo derivato dallo stesso `Schema.Struct` tiene un'unica fonte di verità senza indebolire nulla.
 
   **Limiti accettati**: la validazione scarta forma e valori non ammessi, non tutte le regole di business, che restano nello use case o nel dominio (es. `InvalidTripError`).
+
+## UI e design system
+
+- **Mantine per i componenti interattivi, Tailwind per il layout: dipendenza npm, non codice vendorizzato**
+
+  Le primitive di interfaccia (bottoni, campi, dialog, select, notifiche, ecc.) vengono da `@mantine/core` e `@mantine/hooks`, importate come qualsiasi libreria (`import { Button } from "@mantine/core"`, `<Button variant="outline">`): API a prop documentata, nessuna implementazione interna da leggere o mantenere. Tailwind resta il motore di layout e spaziatura (`app/`, classi utility su griglie, flex, spacing), esattamente come oggi: le due cose convivono, non si sovrappongono sullo stesso compito.
+
+  **Perché**: la priorità di "capire" di AGENTS.md vale per il prodotto e per il codice che scriviamo, non per l'implementazione di ogni bottone — questo è un progetto per imparare Effect, non frontend tooling. Possedere il codice dei componenti è un costo di comprensione e manutenzione che qui non porta nessun vantaggio reale, a differenza del dominio o degli use case, dove capire l'implementazione è proprio il punto.
 
 ## Route e sessione
 

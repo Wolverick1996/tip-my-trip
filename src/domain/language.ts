@@ -67,6 +67,10 @@ export function getLanguageEnglishName(code: LanguageCode): string {
   return ISO6391.getName(code) || code
 }
 
+export function getLanguageFlag(code: LanguageCode): string {
+  return LANGUAGE_FLAGS[code] ?? ""
+}
+
 export function allLanguages(): LanguageOption[] {
   return Object.entries(LANGUAGE_FLAGS)
     .map(([code, flag]) => ({

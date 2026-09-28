@@ -1,9 +1,15 @@
 "use client"
 
+import { ActionIcon, Card, Group, Stack, Text } from "@mantine/core"
+import { modals } from "@mantine/modals"
+import { notifications } from "@mantine/notifications"
+import { IconMapPin, IconPencil, IconTrash } from "@tabler/icons-react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { expertiseLevelLabel } from "@/domain/expertise-level"
+import { AddActionButton } from "@/app/components/AddActionButton"
+import { EmptyState } from "@/app/components/EmptyState"
+import { ExpertiseBadge } from "@/app/components/ExpertiseBadge"
 import { AddCityModal } from "./AddCityModal"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 import { removeKnownCityAction } from "./actions"
@@ -30,19 +36,29 @@ export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
   function closeModal() {
     setModalOpen(false)
     setEditing(null)
+  }
+
+  function handleSaved() {
+    closeModal()
     router.refresh()
   }
 
-  async function handleRemove(entry: ResolvedKnownCity) {
-    if (!window.confirm(`Rimuovere ${entry.city.name} dalle città conosciute?`)) {
-      return
-    }
-    const result = await removeKnownCityAction(entry.city.id)
-    if (result.error) {
-      window.alert(result.error)
-      return
-    }
-    router.refresh()
+  function handleRemove(entry: ResolvedKnownCity) {
+    modals.openConfirmModal({
+      title: "Rimuovere questa città?",
+      children: <Text size="sm">Rimuovere {entry.city.name} dalle città conosciute?</Text>,
+      labels: { confirm: "Rimuovi", cancel: "Annulla" },
+      cancelProps: { "data-autofocus": true },
+      confirmProps: { color: "strawberry" },
+      onConfirm: async () => {
+        const result = await removeKnownCityAction(entry.city.id)
+        if (result.error) {
+          notifications.show({ color: "strawberry", message: result.error })
+          return
+        }
+        router.refresh()
+      },
+    })
   }
 
   return (
@@ -50,54 +66,42 @@ export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
       <WorldMap knownCities={knownCities} />
 
       {knownCities.length === 0 ? (
-        <div className="mt-6 flex flex-col items-center gap-2 py-8 text-center text-zinc-500">
-          <span aria-hidden className="text-4xl">
-            📍
-          </span>
-          <p>Aggiungi una città per vederla qui</p>
-        </div>
+        <EmptyState icon={<IconMapPin size={36} stroke={1.5} aria-hidden />}>
+          Aggiungi una città per vederla qui
+        </EmptyState>
       ) : (
-        <ul className="mt-6 flex flex-col gap-2">
+        <Stack gap="xs" mt="md">
           {knownCities.map((entry) => (
-            <li
-              key={entry.city.id}
-              className="flex items-center justify-between rounded border border-zinc-200 px-3 py-2 dark:border-zinc-800"
-            >
-              <span className="text-sm">
-                {entry.city.name} <span className="text-zinc-500">— {entry.city.country}</span>{" "}
-                <span className="text-zinc-500">({expertiseLevelLabel(entry.level)})</span>
-              </span>
-              <span className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => openEdit(entry)}
-                  aria-label={`Modifica ${entry.city.name}`}
-                >
-                  ✏️
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemove(entry)}
-                  aria-label={`Rimuovi ${entry.city.name}`}
-                >
-                  🗑️
-                </button>
-              </span>
-            </li>
+            <Card key={entry.city.id} withBorder padding="sm" bg="white">
+              <Group justify="space-between">
+                <Group gap="xs">
+                  <Text size="sm">
+                    {entry.city.name} <Text component="span" c="dimmed" inherit>— {entry.city.country}</Text>
+                  </Text>
+                  <ExpertiseBadge level={entry.level} />
+                </Group>
+                <Group gap="xs">
+                  <ActionIcon variant="subtle" onClick={() => openEdit(entry)} aria-label={`Modifica ${entry.city.name}`}>
+                    <IconPencil size={18} />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="subtle"
+                    color="strawberry"
+                    onClick={() => handleRemove(entry)}
+                    aria-label={`Rimuovi ${entry.city.name}`}
+                  >
+                    <IconTrash size={18} />
+                  </ActionIcon>
+                </Group>
+              </Group>
+            </Card>
           ))}
-        </ul>
+        </Stack>
       )}
 
-      <button
-        type="button"
-        onClick={openAdd}
-        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-2xl text-white shadow-lg"
-        aria-label="Aggiungi una città"
-      >
-        +
-      </button>
+      <AddActionButton label="Aggiungi una città" onClick={openAdd} />
 
-      {modalOpen && <AddCityModal knownCities={knownCities} editing={editing} onClose={closeModal} />}
+      {modalOpen && <AddCityModal knownCities={knownCities} editing={editing} onClose={closeModal} onSaved={handleSaved} />}
     </div>
   )
 }

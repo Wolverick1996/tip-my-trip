@@ -1,48 +1,37 @@
+@layer theme, base, mantine, components, utilities;
 @import "tailwindcss";
+@import "@mantine/core/styles.layer.css";
+@import "@mantine/notifications/styles.layer.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root[data-mantine-color-scheme="light"] {
+  --mantine-color-body: var(--mantine-color-mint-0);
+  --mantine-color-placeholder: var(--mantine-color-cream-6);
+  --mantine-color-dimmed: var(--mantine-color-cream-6);
+  --mantine-color-default-border: var(--mantine-color-cream-4);
+  --mantine-color-default-hover: var(--mantine-color-cream-1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-lora);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.trip-stepper {
+  --stepper-outline-color: var(--mantine-color-cream-5);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.trip-stepper .trip-stepper-icon:not([data-completed]):not([data-progress]) {
+  background-color: var(--mantine-color-cream-3);
 }
 
-.PhoneInput {
-  align-items: center;
-  border-radius: 0.25rem;
-  border: 1px solid #d4d4d8;
-  padding: 0.5rem 0.75rem;
+.mantine-Input-input[data-variant="default"] {
+  border-color: var(--mantine-color-cream-6);
 }
 
-.PhoneInputInput {
-  background: transparent;
-  border: none;
-  color: inherit;
-  font: inherit;
-  outline: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  .PhoneInput {
-    border-color: #3f3f46;
-    background: #18181b;
-  }
+.mantine-Input-input[data-variant="default"]:focus {
+  border-color: var(--mantine-primary-color-filled);
 }

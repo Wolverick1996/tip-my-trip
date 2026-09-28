@@ -1,5 +1,8 @@
 "use client"
 
+import { Alert, Button, Input, Stack, Text, TextInput } from "@mantine/core"
+import { IconAlertCircle } from "@tabler/icons-react"
+import { useForm } from "@mantine/form"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useTransition } from "react"
 import PhoneInput from "react-phone-number-input"
@@ -8,17 +11,21 @@ import type { LanguageCode } from "@/domain/language"
 import { registerAction, type RegisterFormState } from "./actions"
 import { LanguagePicker } from "./LanguagePicker"
 
-const initialState: RegisterFormState = { success: false }
+interface RegisterValues {
+  name: string
+  languages: LanguageCode[]
+  whatsApp: string
+  email: string
+}
 
 export function RegisterForm() {
-  const [state, setState] = useState(initialState)
+  const [state, setState] = useState<RegisterFormState>({ success: false })
   const [pending, startTransition] = useTransition()
   const router = useRouter()
 
-  const [name, setName] = useState("")
-  const [languages, setLanguages] = useState<LanguageCode[]>([])
-  const [whatsApp, setWhatsApp] = useState("")
-  const [email, setEmail] = useState("")
+  const form = useForm<RegisterValues>({
+    initialValues: { name: "", languages: [], whatsApp: "", email: "" },
+  })
 
   useEffect(() => {
     if (state.success) {
@@ -26,74 +33,62 @@ export function RegisterForm() {
     }
   }, [state.success, router])
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+  function handleSubmit(values: RegisterValues) {
     const formData = new FormData()
-    formData.set("name", name)
-    for (const code of languages) formData.append("languages", code)
-    formData.set("whatsApp", whatsApp)
-    formData.set("email", email)
+    formData.set("name", values.name)
+    for (const code of values.languages) formData.append("languages", code)
+    formData.set("whatsApp", values.whatsApp)
+    formData.set("email", values.email)
     startTransition(async () => {
       setState(await registerAction(formData))
     })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-      {state.error && (
-        <p
-          aria-live="polite"
-          className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-        >
-          {state.error}
-        </p>
-      )}
+    <form onSubmit={form.onSubmit(handleSubmit)}>
+      <Stack gap="md" mt="md">
+        {state.error && (
+          <Alert color="strawberry" icon={<IconAlertCircle size={16} />} aria-live="polite">
+            {state.error}
+          </Alert>
+        )}
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Nome</span>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+        <TextInput label="Nome" required {...form.getInputProps("name")} />
+
+        <LanguagePicker
+          label="Lingue parlate"
+          selected={form.values.languages}
+          onChange={(next) => form.setFieldValue("languages", next)}
         />
-      </label>
 
-      <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Lingue parlate</span>
-        <LanguagePicker selected={languages} onChange={setLanguages} />
-      </div>
+        <div>
+          <Input.Label htmlFor="whatsapp-number" mb={5}>
+            WhatsApp
+          </Input.Label>
+          <PhoneInput
+            id="whatsapp-number"
+            className="gap-2 h-[calc(2.25rem*var(--mantine-scale))] border-[calc(0.0625rem*var(--mantine-scale))] border-(--mantine-color-cream-6) bg-(--mantine-color-white) rounded-(--mantine-radius-default) px-[calc(2.25rem*var(--mantine-scale)/3)] [font-family:var(--mantine-font-family)] text-(length:--mantine-font-size-md) text-(--mantine-color-text) transition-[border-color] duration-100 ease-[ease] focus-within:border-(--mantine-primary-color-filled)"
+            international
+            defaultCountry="IT"
+            value={form.values.whatsApp}
+            numberInputProps={{
+              className:
+                "outline-none placeholder:text-(--mantine-color-placeholder)",
+            }}
+            onChange={(value) => form.setFieldValue("whatsApp", value ?? "")}
+          />
+        </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">WhatsApp</span>
-        <PhoneInput
-          international
-          defaultCountry="IT"
-          value={whatsApp}
-          onChange={(value) => setWhatsApp(value ?? "")}
-        />
-      </label>
+        <TextInput label="Email" type="email" {...form.getInputProps("email")} />
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Email</span>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
+        <Text size="sm" c="dimmed">
+          Indica almeno un contatto tra WhatsApp ed email.
+        </Text>
 
-      <p className="text-xs text-zinc-500">Indica almeno un contatto tra WhatsApp ed email.</p>
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        {pending ? "Registrazione…" : "Registrati"}
-      </button>
+        <Button type="submit" loading={pending}>
+          Registrati
+        </Button>
+      </Stack>
     </form>
   )
 }

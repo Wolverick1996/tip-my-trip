@@ -1,9 +1,15 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { ActionIcon, Alert, Button, Chip, Group, Loader, Modal, NavLink, ScrollArea, Stack, Text, TextInput } from "@mantine/core"
+import { IconAlertCircle, IconArrowLeft } from "@tabler/icons-react"
+import { useState } from "react"
 import type { CitySearchResult } from "@/app/api/cities/city-search-result"
-import { useCitySearch } from "@/hooks/use-city-search"
+import { useCitySearch } from "@/app/hooks/use-city-search"
 import { EXPERTISE_LEVELS, expertiseLevelLabel, type ExpertiseLevel } from "@/domain/expertise-level"
+import {
+  expertiseLevelBadgeColor,
+  expertiseLevelChipOutlineColor,
+} from "@/app/expertise-level-colors"
 import { setKnownCityAction } from "./actions"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 
@@ -11,29 +17,34 @@ export function AddCityModal({
   knownCities,
   editing,
   onClose,
+  onSaved,
 }: {
-  knownCities: ResolvedKnownCity[]
-  editing: ResolvedKnownCity | null
-  onClose: () => void
+  knownCities: ResolvedKnownCity[];
+  editing: ResolvedKnownCity | null;
+  onClose: () => void;
+  onSaved: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<CitySearchResult | null>(editing?.city ?? null)
   const [level, setLevel] = useState<ExpertiseLevel | null>(editing?.level ?? null)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const { results: visibleResults, searching, searchFailed, active: searchActive } = useCitySearch(query, !selected)
-
-  useEffect(() => {
-    ref.current?.showModal()
-  }, [])
+  const [saving, setSaving] = useState(false)
+  const {
+    results: visibleResults,
+    searching,
+    searchFailed,
+    canSearch,
+  } = useCitySearch(query, !selected)
 
   function handleSelect(city: CitySearchResult) {
     const alreadyKnown = knownCities.find((known) => known.city.id === city.id)
+    setSaveError(null)
     setSelected(city)
     setLevel(alreadyKnown?.level ?? null)
   }
 
   function handleBack() {
+    setSaveError(null)
     setSelected(null)
     setLevel(null)
     setQuery("")
@@ -43,108 +54,123 @@ export function AddCityModal({
     if (!selected || !level) {
       return
     }
-    const result = await setKnownCityAction({ cityId: selected.id, level })
-    if (result.error) {
-      setSaveError(result.error)
-      return
+    setSaving(true)
+    try {
+      const result = await setKnownCityAction({ cityId: selected.id, level })
+      if (result.error) {
+        setSaveError(result.error)
+        return
+      }
+      onSaved()
+    } finally {
+      setSaving(false)
     }
-    ref.current?.close()
   }
 
   return (
-    <dialog
-      ref={ref}
+    <Modal
+      opened
       onClose={onClose}
-      aria-labelledby="add-city-title"
-      className="m-auto w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-lg backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-900"
+      title={
+        <Group gap={4} wrap="nowrap">
+          {selected && (
+            <ActionIcon
+              variant="subtle"
+              onClick={handleBack}
+              aria-label="Torna alla ricerca città"
+            >
+              <IconArrowLeft size={18} />
+            </ActionIcon>
+          )}
+          <Text span>{editing ? "Modifica città" : "Aggiungi una città"}</Text>
+        </Group>
+      }
     >
-      <div className="flex items-center justify-between">
-        <h2 id="add-city-title" className="text-lg font-semibold">
-          {editing ? "Modifica città" : "Aggiungi una città"}
-        </h2>
-        <button type="button" onClick={() => ref.current?.close()} aria-label="Chiudi">
-          ✕
-        </button>
-      </div>
-
       {!selected ? (
-        <div className="mt-4 flex flex-col gap-2">
-          <input
-            type="text"
+        <Stack gap="xs">
+          <TextInput
             autoFocus
+            data-autofocus
+            label="Cerca una città"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.currentTarget.value)}
             placeholder="Cerca una città…"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            rightSection={searching ? <Loader size="xs" /> : null}
           />
-          {searching && <p className="text-sm text-zinc-500">Cerco…</p>}
           {!searching && searchFailed && (
-            <p className="text-sm text-red-600">Ricerca non disponibile, riprova.</p>
+            <Text size="sm" c="strawberry">
+              Ricerca non disponibile, riprova.
+            </Text>
           )}
-          {!searching && !searchFailed && searchActive && visibleResults.length === 0 && (
-            <p className="text-sm text-zinc-500">Nessuna città trovata.</p>
-          )}
-          <ul className="max-h-48 overflow-y-auto">
+          {!searching && !searchFailed && canSearch && visibleResults.length === 0 && (
+              <Text size="sm" c="dimmed">
+                Nessuna città trovata.
+              </Text>
+            )}
+          <ScrollArea.Autosize>
             {visibleResults.map((city) => {
               const alreadyKnown = knownCities.find((known) => known.city.id === city.id)
               return (
-                <li key={city.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(city)}
-                    className="w-full rounded px-3 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    {city.name}, {city.country}
-                    {alreadyKnown && (
-                      <span className="ml-2 text-xs text-zinc-500">
-                        Già aggiunta · {expertiseLevelLabel(alreadyKnown.level)}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-3">
-          <p className="text-sm">
-            {selected.name}, {selected.country}
-          </p>
-          <fieldset className="flex flex-col gap-1">
-            <legend className="text-sm font-medium">Livello di conoscenza</legend>
-            {EXPERTISE_LEVELS.map((candidateLevel) => (
-              <label key={candidateLevel} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="level"
-                  checked={level === candidateLevel}
-                  onChange={() => setLevel(candidateLevel)}
+                <NavLink
+                  component="button"
+                  type="button"
+                  key={city.id}
+                  label={`${city.name}, ${city.country}`}
+                  description={
+                    alreadyKnown
+                      ? `Già aggiunta · ${expertiseLevelLabel(alreadyKnown.level)}`
+                      : undefined
+                  }
+                  onClick={() => handleSelect(city)}
                 />
-                {expertiseLevelLabel(candidateLevel)}
-              </label>
-            ))}
-          </fieldset>
+              );
+            })}
+          </ScrollArea.Autosize>
+        </Stack>
+      ) : (
+        <Stack gap="sm">
+          <Text size="sm">
+            {selected.name}, {selected.country}
+          </Text>
+          <Chip.Group
+            value={level}
+            onChange={(value) => setLevel(value as ExpertiseLevel)}
+          >
+            <Text size="sm" fw={500}>
+              Livello di conoscenza
+            </Text>
+            <Group gap="xs">
+              {EXPERTISE_LEVELS.map((candidateLevel) => (
+                <Chip
+                  key={candidateLevel}
+                  value={candidateLevel}
+                  autoFocus={candidateLevel === EXPERTISE_LEVELS[0]}
+                  data-autofocus={candidateLevel === EXPERTISE_LEVELS[0] ? true : undefined}
+                  color={
+                    level === candidateLevel
+                      ? expertiseLevelBadgeColor(candidateLevel)
+                      : expertiseLevelChipOutlineColor(candidateLevel)
+                  }
+                  variant={level === candidateLevel ? "filled" : "outline"}
+                  autoContrast
+                >
+                  {expertiseLevelLabel(candidateLevel)}
+                </Chip>
+              ))}
+            </Group>
+          </Chip.Group>
           {saveError && (
-            <p role="alert" className="text-sm text-red-600">
+            <Alert color="strawberry" icon={<IconAlertCircle size={16} />} aria-live="polite">
               {saveError}
-            </p>
+            </Alert>
           )}
-          <div className="flex items-center justify-between">
-            <button type="button" onClick={handleBack} className="text-sm text-zinc-500 hover:underline">
-              ← Cambia città
-            </button>
-            <button
-              type="button"
-              disabled={!level}
-              onClick={handleSave}
-              className="rounded bg-zinc-900 px-4 py-2 text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-            >
+          <Group justify="flex-end">
+            <Button disabled={!level || saving} loading={saving} onClick={handleSave}>
               Salva
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Group>
+        </Stack>
       )}
-    </dialog>
+    </Modal>
   )
 }
