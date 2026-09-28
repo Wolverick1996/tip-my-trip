@@ -9,6 +9,7 @@ import { GET } from "../route"
 
 jest.mock("@/current-user", () => ({ findCurrentUser: jest.fn() }))
 jest.mock("@/use-cases/find-experts-for-trip", () => ({ findExpertsForTrip: jest.fn() }))
+jest.mock("@/use-cases/get-city", () => ({ getCity: jest.fn((cityId: string) => (cityId === "madrid" ? {} : undefined)) }))
 
 const organizer: Traveler = { id: "org-1", name: "Giulia", languages: ["it"], knownCities: [], contact: {} }
 
@@ -37,6 +38,14 @@ test("con città duplicate restituisce 400, per non falsare il punteggio di cope
 
   expect(response.status).toBe(400)
   expect(await response.json()).toEqual({ error: "Una città compare più di una volta nel viaggio." })
+})
+
+test("con una città inesistente restituisce 400, senza consultare la sessione", async () => {
+  const response = await get("città-inesistente")
+
+  expect(response.status).toBe(400)
+  expect(await response.json()).toEqual({ error: "Una delle città del viaggio non esiste." })
+  expect(findCurrentUser).not.toHaveBeenCalled()
 })
 
 test("senza sessione restituisce 401, senza cercare esperti", async () => {

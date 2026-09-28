@@ -4,6 +4,7 @@ import { findCurrentUser } from "@/current-user"
 import { findTripProblem } from "@/domain/trip"
 import { runtime } from "@/runtime"
 import { findExpertsForTrip } from "@/use-cases/find-experts-for-trip"
+import { getCity } from "@/use-cases/get-city"
 import type { TripMatch } from "./trip-match"
 
 class BadRequest extends Data.TaggedError("BadRequest")<{ reason: string }> {}
@@ -14,6 +15,9 @@ const tripMatches = (cityIds: string[]) =>
     const problem = findTripProblem({ cityIds, expertIds: [] })
     if (problem) {
       return yield* Effect.fail(new BadRequest({ reason: problem }))
+    }
+    if (cityIds.some((cityId) => !getCity(cityId))) {
+      return yield* Effect.fail(new BadRequest({ reason: "Una delle città del viaggio non esiste." }))
     }
 
     const organizer = yield* Effect.promise(() => findCurrentUser())
@@ -39,7 +43,7 @@ const tripMatches = (cityIds: string[]) =>
   )
 
 export async function GET(request: NextRequest) {
-  const cityIds = (request.nextUrl.searchParams.get("cityIds") ?? "").split(",").filter(Boolean)
+  const cityIds = (request.nextUrl.searchParams.get("cityIds") ?? "").split(",").map((cityId) => cityId.trim()).filter(Boolean)
   const exit = await runtime.runPromiseExit(tripMatches(cityIds))
 
   return Exit.match(exit, {
