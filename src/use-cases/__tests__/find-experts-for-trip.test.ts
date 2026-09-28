@@ -30,10 +30,7 @@ function testLayer(travelers: Traveler[]) {
         const found = travelers.find((traveler) => traveler.id === id)
         return found ? Effect.succeed(found) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
       },
-      save: (traveler) =>
-        Effect.sync(() => {
-          travelers.push(traveler)
-        }),
+      save: () => Effect.void,
     }),
   )
 }

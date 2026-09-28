@@ -8,12 +8,15 @@ import { createTrip } from "../create-trip"
 import { deleteTrip } from "../delete-trip"
 import { listTrips } from "../list-trips"
 
-const travelers: Traveler[] = [
-  { id: "e-1", name: "Anna", languages: ["it"], knownCities: [], contact: {} },
-  { id: "e-2", name: "Bruno", languages: ["it"], knownCities: [], contact: {} },
-]
+function testTravelers(): Traveler[] {
+  return [
+    { id: "org", name: "Organizzatore", languages: ["it"], knownCities: [], contact: {} },
+    { id: "e-1", name: "Anna", languages: ["it"], knownCities: [{ cityId: "madrid", level: "local" }], contact: { email: "anna@example.com" } },
+    { id: "e-2", name: "Bruno", languages: ["it"], knownCities: [{ cityId: "madrid", level: "expert" }], contact: {} },
+  ]
+}
 
-function testLayer(trips: Trip[]) {
+function testLayer(trips: Trip[], travelers = testTravelers()) {
   return Layer.mergeAll(
     Layer.succeed(
       TripRepository,
@@ -31,7 +34,10 @@ function testLayer(trips: Trip[]) {
       TravelerRepository,
       TravelerRepository.of({
         findAll: () => Effect.succeed(travelers),
-        findById: (id) => Effect.fail(new TravelerNotFoundError({ travelerId: id })),
+        findById: (id) => {
+          const traveler = travelers.find((candidate) => candidate.id === id)
+          return traveler ? Effect.succeed(traveler) : Effect.fail(new TravelerNotFoundError({ travelerId: id }))
+        },
         save: () => Effect.void,
       }),
     ),
@@ -39,23 +45,38 @@ function testLayer(trips: Trip[]) {
 }
 
 function trip(overrides: Partial<Trip> = {}): Trip {
-  return { id: "t-1", organizerId: "org", cityIds: ["madrid"], expertIds: [], createdAt: 0, ...overrides }
+  return { id: "t-1", organizerId: "org", cityIds: ["madrid"], experts: [], createdAt: 0, ...overrides }
 }
 
 describe("createTrip", () => {
-  test("salva il viaggio con un id nuovo e senza titolo se il titolo è vuoto", async () => {
+  test("salva uno snapshot immutabile degli esperti selezionati", async () => {
     const trips: Trip[] = []
+    const people = testTravelers()
 
     const created = await Effect.runPromise(
       Effect.provide(
         createTrip({ organizerId: "org", title: "  ", cityIds: ["madrid"], expertIds: ["e-1"] }),
-        testLayer(trips),
+        testLayer(trips, people),
       ),
     )
 
     expect(created.id).toEqual(expect.any(String))
     expect(created.title).toBeUndefined()
     expect(trips).toEqual([created])
+
+    people[1] = { ...people[1], name: "Anna aggiornata", knownCities: [], languages: ["fr"], contact: { email: "new@example.com" } }
+    const listed = await Effect.runPromise(Effect.provide(listTrips("org"), testLayer(trips, people)))
+
+    expect(listed[0].experts).toEqual([
+      {
+        id: "e-1",
+        name: "Anna",
+        matchedCities: [{ cityId: "madrid", level: "local" }],
+        sharedLanguages: ["it"],
+        contact: { email: "new@example.com" },
+      },
+    ])
+    expect(trips[0].experts[0]).not.toHaveProperty("contact")
   })
 
   test("fallisce con InvalidTripError se il viaggio viola una regola del dominio, senza salvarlo", async () => {
@@ -72,7 +93,10 @@ describe("createTrip", () => {
 
 describe("listTrips", () => {
   test("risolve gli esperti di ogni viaggio, nell'ordine scelto", async () => {
-    const trips = [trip({ expertIds: ["e-2", "e-1"] }), trip({ id: "t-altro", organizerId: "altro" })]
+    const trips = [
+      trip({ experts: [{ id: "e-2", name: "Bruno", matchedCities: [], sharedLanguages: [] }, { id: "e-1", name: "Anna", matchedCities: [], sharedLanguages: [] }] }),
+      trip({ id: "t-altro", organizerId: "altro" }),
+    ]
 
     const result = await Effect.runPromise(Effect.provide(listTrips("org"), testLayer(trips)))
 
@@ -89,7 +113,7 @@ describe("listTrips", () => {
 
     const result = await Effect.runPromise(Effect.provide(listTrips("org"), testLayer(trips)))
 
-    expect(result.map(({ trip: found }) => found.id)).toEqual(["t-nuovo", "t-medio", "t-vecchio"])
+    expect(result.map((trip) => trip.id)).toEqual(["t-nuovo", "t-medio", "t-vecchio"])
   })
 })
 

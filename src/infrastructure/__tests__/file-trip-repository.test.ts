@@ -26,21 +26,32 @@ const trip = (overrides: Partial<Trip> = {}): Trip => ({
   id: "t-1",
   organizerId: "org",
   cityIds: ["madrid"],
-  expertIds: [],
+  experts: [],
   createdAt: 0,
   ...overrides,
 })
 
 test("salva e rilegge i viaggi dell'organizzatore, senza quelli degli altri", async () => {
+  const selectedTrip = trip({
+    experts: [
+      {
+        id: "expert-1",
+        name: "Anna",
+        matchedCities: [{ cityId: "madrid", level: "local" }],
+        sharedLanguages: ["it"],
+      },
+    ],
+  })
+
   await run(
     Effect.flatMap(TripRepository, (repo) =>
-      Effect.andThen(repo.save(trip()), repo.save(trip({ id: "t-2", organizerId: "altro" }))),
+      Effect.andThen(repo.save(selectedTrip), repo.save(trip({ id: "t-2", organizerId: "altro" }))),
     ),
   )
 
   const trips = await run(Effect.flatMap(TripRepository, (repo) => repo.findByOrganizer("org")))
 
-  expect(trips).toEqual([trip()])
+  expect(trips).toEqual([selectedTrip])
 })
 
 test("delete su un file che non esiste ancora non fallisce", async () => {

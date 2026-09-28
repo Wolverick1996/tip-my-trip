@@ -11,14 +11,15 @@ import { MyTrips } from "./MyTrips"
 export default async function TripsPage() {
   const organizer = await getCurrentUser()
   const organizerCityIds = organizer.knownCities.map((known) => known.cityId)
-  const tripsWithExperts = await runtime.runPromise(listTrips(organizer.id))
+  const trips = await runtime.runPromise(listTrips(organizer.id))
 
-  const trips: ResolvedTrip[] = tripsWithExperts.map(({ trip, experts }) => {
+  const resolvedTrips: ResolvedTrip[] = trips.map((trip) => {
+    const experts = trip.experts
     const cityName = (cityId: string) => getCity(cityId)?.name ?? cityId
     const expertName = (id: string) => experts.find((expert) => expert.id === id)?.name ?? id
     const coverage = cityCoverage(
       trip.cityIds,
-      experts.map((expert) => ({ id: expert.id, cityIds: expert.knownCities.map((known) => known.cityId) })),
+      experts.map((expert) => ({ id: expert.id, cityIds: expert.matchedCities.map((known) => known.cityId) })),
       organizerCityIds,
     )
 
@@ -34,12 +35,13 @@ export default async function TripsPage() {
       experts: experts.map((expert) => ({
         id: expert.id,
         name: expert.name,
-        knownCities: trip.cityIds.flatMap((cityId) => {
-          const knownCity = expert.knownCities.find((known) => known.cityId === cityId)
-          return knownCity ? [{ id: cityId, name: cityName(cityId), level: knownCity.level }] : []
-        }),
-        languages: expert.languages.filter((language) => organizer.languages.includes(language)),
-        contact: expert.contact,
+        knownCities: expert.matchedCities.map((city) => ({
+          id: city.cityId,
+          name: cityName(city.cityId),
+          level: city.level,
+        })),
+        languages: expert.sharedLanguages,
+        contact: expert.contact ?? {},
       })),
     }
   })
@@ -51,7 +53,7 @@ export default async function TripsPage() {
         Scegli le città e trova chi le conosce davvero.
       </Text>
 
-      <MyTrips trips={trips} organizerCityIds={organizerCityIds} />
+      <MyTrips trips={resolvedTrips} organizerCityIds={organizerCityIds} />
     </PageWrapper>
   )
 }

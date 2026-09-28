@@ -1,4 +1,6 @@
 import type { CityId } from "./city"
+import type { MatchedCity } from "./matching"
+import type { LanguageCode } from "./language"
 import type { TravelerId } from "./traveler"
 
 export type TripId = string
@@ -8,8 +10,15 @@ export interface Trip {
   organizerId: TravelerId
   title?: string
   cityIds: CityId[]
-  expertIds: TravelerId[]
+  experts: TripExpertSnapshot[]
   createdAt: number
+}
+
+export interface TripExpertSnapshot {
+  id: TravelerId
+  name: string
+  matchedCities: MatchedCity[]
+  sharedLanguages: LanguageCode[]
 }
 
 export interface CityCoverage {
@@ -22,7 +31,7 @@ function hasDuplicates(values: string[]): boolean {
   return new Set(values).size !== values.length
 }
 
-export function findTripProblem(trip: Pick<Trip, "cityIds" | "expertIds">): string | undefined {
+export function findTripProblem(trip: { cityIds: CityId[]; expertIds: TravelerId[] }): string | undefined {
   if (trip.cityIds.length === 0) {
     return "Aggiungi almeno una città."
   }

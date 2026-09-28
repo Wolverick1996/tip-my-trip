@@ -208,11 +208,12 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   **Perché**: coerente con l'eccezione didattica per `/api/cities` — anche qui la route intera è scritta con Effect per esercitare il pattern, con un caso in più: comporre una `Promise` esterna alla pipeline.
 
-- **`Trip.expertIds`: array piatto di id nell'aggregato, non una relazione a parte**
+- **`Trip.experts`: snapshot dei dati rilevanti, non una relazione viva ai traveler**
 
-  La selezione di più esperti per un viaggio (scelta di prodotto, vedi `docs/product-brief.md`) è un campo `expertIds: TravelerId[]` dentro `Trip`, non una tabella o collezione separata.
+  Quando si salva un viaggio, `createTrip` rilegge dal repository i traveler selezionati e salva in `Trip.experts` l'id, il nome, le città del viaggio che conoscono con il livello e le lingue condivise. Questi dati spiegano il match e restano congelati. Il contatto è invece caricato dal profilo corrente quando si elencano i viaggi: può cambiare senza riscrivere lo snapshot; se il profilo non esiste più, il viaggio resta visibile senza link di contatto. Il client invia solo gli id selezionati; al salvataggio il server ricalcola i match con i profili aggiornati. Se un esperto selezionato non conosce più nessuna città del viaggio o non condivide più lingue con l'organizzatore, il viaggio non viene salvato e la finestra mostra un messaggio d'errore.
 
-  **Perché**: è la forma più semplice per una selezione multipla quando non serve altro: nessun dato aggiuntivo sulla relazione, nessuna query oltre a "quali id sono selezionati".
+  **Perché**: il viaggio rappresenta la scelta fatta in quel momento, non una vista dinamica dei profili. Un array di snapshot è sufficiente per la selezione multipla e mantiene la schermata stabile senza introdurre una relazione separata.
+
 
 - **`TripRepository.delete` è un no-op silenzioso se il viaggio non esiste o non è dell'organizzatore**
 

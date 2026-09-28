@@ -1,21 +1,33 @@
 import { Effect, Layer, Schema } from "effect"
 import path from "node:path"
-import type { Trip } from "@/domain/trip"
+import type { ExpertiseLevel } from "@/domain/expertise-level"
+import type { Trip, TripExpertSnapshot } from "@/domain/trip"
 import { TripRepository } from "@/domain/trip-repository"
 import { DATA_DIR, readJsonFile, writeJsonFile } from "./json-file"
 
-const TripsFile = Schema.mutable(
-  Schema.Array(
-    Schema.Struct({
-      id: Schema.String,
-      organizerId: Schema.String,
-      title: Schema.optional(Schema.String),
-      cityIds: Schema.mutable(Schema.Array(Schema.String)),
-      expertIds: Schema.mutable(Schema.Array(Schema.String)),
-      createdAt: Schema.Number,
-    }),
-  ),
-)
+const ExpertiseLevel: Schema.Schema<ExpertiseLevel> = Schema.Literal("base", "expert", "local")
+const MatchedCity = Schema.Struct({
+  cityId: Schema.String,
+  level: ExpertiseLevel,
+})
+
+const TripExpertSnapshot: Schema.Schema<TripExpertSnapshot> = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  matchedCities: Schema.mutable(Schema.Array(MatchedCity)),
+  sharedLanguages: Schema.mutable(Schema.Array(Schema.String)),
+})
+
+const Trip: Schema.Schema<Trip> = Schema.Struct({
+  id: Schema.String,
+  organizerId: Schema.String,
+  title: Schema.optional(Schema.String),
+  cityIds: Schema.mutable(Schema.Array(Schema.String)),
+  experts: Schema.mutable(Schema.Array(TripExpertSnapshot)),
+  createdAt: Schema.Number,
+})
+
+const TripsFile = Schema.mutable(Schema.Array(Trip))
 
 /**
  * Adapter del port TripRepository che salva i viaggi in un file JSON.
