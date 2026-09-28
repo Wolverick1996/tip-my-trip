@@ -9,9 +9,17 @@ import { GET } from "../route"
 
 jest.mock("@/current-user", () => ({ findCurrentUser: jest.fn() }))
 jest.mock("@/use-cases/find-experts-for-trip", () => ({ findExpertsForTrip: jest.fn() }))
-jest.mock("@/use-cases/get-city", () => ({ getCity: jest.fn((cityId: string) => (cityId === "madrid" ? {} : undefined)) }))
+jest.mock("@/use-cases/get-city", () => ({
+  getCity: jest.fn((cityId: string) => (cityId === "madrid" ? {} : undefined)),
+}))
 
-const organizer: Traveler = { id: "org-1", name: "Giulia", languages: ["it"], knownCities: [], contact: {} }
+const organizer: Traveler = {
+  id: "org-1",
+  name: "Giulia",
+  languages: ["it"],
+  knownCities: [],
+  contact: {},
+}
 
 const elena: Traveler = {
   id: "expert-1",
@@ -37,7 +45,9 @@ test("con città duplicate restituisce 400, per non falsare il punteggio di cope
   const response = await get("madrid,madrid")
 
   expect(response.status).toBe(400)
-  expect(await response.json()).toEqual({ error: "Una città compare più di una volta nel viaggio." })
+  expect(await response.json()).toEqual({
+    error: "Una città compare più di una volta nel viaggio.",
+  })
 })
 
 test("con una città inesistente restituisce 400, senza consultare la sessione", async () => {
@@ -83,7 +93,12 @@ test("con sessione restituisce 200, senza cache, con solo i campi del DTO (nient
   jest.mocked(findCurrentUser).mockResolvedValue(organizer)
   jest.mocked(findExpertsForTrip).mockReturnValue(
     Effect.succeed([
-      { traveler: elena, score: 73, matchedCities: [{ cityId: "madrid", level: "local" }], sharedLanguages: ["it"] },
+      {
+        traveler: elena,
+        score: 73,
+        matchedCities: [{ cityId: "madrid", level: "local" }],
+        sharedLanguages: ["it"],
+      },
     ]),
   )
 

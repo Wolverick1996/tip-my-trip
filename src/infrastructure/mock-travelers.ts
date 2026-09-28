@@ -2,6 +2,7 @@ import type { Traveler } from "@/domain/traveler"
 
 const knownCity = (cityId: string, level: Traveler["knownCities"][number]["level"]) => ({ cityId, level })
 
+// prettier-ignore
 const mockTravelerProfiles: Array<[
   Traveler["id"], Traveler["name"], Traveler["languages"], Traveler["knownCities"],
 ]> = [

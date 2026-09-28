@@ -11,8 +11,20 @@ import { listTrips } from "../list-trips"
 function testTravelers(): Traveler[] {
   return [
     { id: "org", name: "Organizzatore", languages: ["it"], knownCities: [], contact: {} },
-    { id: "e-1", name: "Anna", languages: ["it"], knownCities: [{ cityId: "madrid", level: "local" }], contact: { email: "anna@example.com" } },
-    { id: "e-2", name: "Bruno", languages: ["it"], knownCities: [{ cityId: "madrid", level: "expert" }], contact: {} },
+    {
+      id: "e-1",
+      name: "Anna",
+      languages: ["it"],
+      knownCities: [{ cityId: "madrid", level: "local" }],
+      contact: { email: "anna@example.com" },
+    },
+    {
+      id: "e-2",
+      name: "Bruno",
+      languages: ["it"],
+      knownCities: [{ cityId: "madrid", level: "expert" }],
+      contact: {},
+    },
   ]
 }
 
@@ -45,7 +57,14 @@ function testLayer(trips: Trip[], travelers = testTravelers()) {
 }
 
 function trip(overrides: Partial<Trip> = {}): Trip {
-  return { id: "t-1", organizerId: "org", cityIds: ["madrid"], experts: [], createdAt: 0, ...overrides }
+  return {
+    id: "t-1",
+    organizerId: "org",
+    cityIds: ["madrid"],
+    experts: [],
+    createdAt: 0,
+    ...overrides,
+  }
 }
 
 describe("createTrip", () => {
@@ -64,7 +83,13 @@ describe("createTrip", () => {
     expect(created.title).toBeUndefined()
     expect(trips).toEqual([created])
 
-    people[1] = { ...people[1], name: "Anna aggiornata", knownCities: [], languages: ["fr"], contact: { email: "new@example.com" } }
+    people[1] = {
+      ...people[1],
+      name: "Anna aggiornata",
+      knownCities: [],
+      languages: ["fr"],
+      contact: { email: "new@example.com" },
+    }
     const listed = await Effect.runPromise(Effect.provide(listTrips("org"), testLayer(trips, people)))
 
     expect(listed[0].experts).toEqual([
@@ -94,7 +119,12 @@ describe("createTrip", () => {
 describe("listTrips", () => {
   test("risolve gli esperti di ogni viaggio, nell'ordine scelto", async () => {
     const trips = [
-      trip({ experts: [{ id: "e-2", name: "Bruno", matchedCities: [], sharedLanguages: [] }, { id: "e-1", name: "Anna", matchedCities: [], sharedLanguages: [] }] }),
+      trip({
+        experts: [
+          { id: "e-2", name: "Bruno", matchedCities: [], sharedLanguages: [] },
+          { id: "e-1", name: "Anna", matchedCities: [], sharedLanguages: [] },
+        ],
+      }),
       trip({ id: "t-altro", organizerId: "altro" }),
     ]
 

@@ -51,9 +51,7 @@ function MatchOption({
       p="md"
       radius="sm"
       classNames={{
-        card: selected
-          ? "bg-(--mantine-color-lagoon-0) border-(--mantine-color-lagoon-8)"
-          : undefined,
+        card: selected ? "bg-(--mantine-color-lagoon-0) border-(--mantine-color-lagoon-8)" : undefined,
       }}
     >
       <Group wrap="nowrap" align="flex-start" gap="sm">
@@ -72,11 +70,7 @@ function MatchOption({
               {match.matchedCities.length}/{cityCount} città:
             </Text>
             {match.matchedCities.map((matched) => (
-              <ExpertiseBadge
-                key={matched.cityId}
-                level={matched.level}
-                cityName={cityName(matched.cityId)}
-              />
+              <ExpertiseBadge key={matched.cityId} level={matched.level} cityName={cityName(matched.cityId)} />
             ))}
           </Group>
           <Text size="sm" c="dimmed">
@@ -88,13 +82,7 @@ function MatchOption({
   )
 }
 
-export function CreateTripModal({
-  organizerCityIds,
-  onClose,
-}: {
-  organizerCityIds: CityId[]
-  onClose: () => void
-}) {
+export function CreateTripModal({ organizerCityIds, onClose }: { organizerCityIds: CityId[]; onClose: () => void }) {
   const router = useRouter()
 
   const [step, setStep] = useState<Step>("cities")
@@ -125,7 +113,9 @@ export function CreateTripModal({
       return
     }
     const controller = new AbortController()
-    fetch(`/api/trip-matches?cityIds=${cities.map((city) => city.id).join(",")}`, { signal: controller.signal })
+    fetch(`/api/trip-matches?cityIds=${cities.map((city) => city.id).join(",")}`, {
+      signal: controller.signal,
+    })
       .then(async (response) => {
         if (response.status === 401) {
           router.replace("/register")
@@ -180,7 +170,9 @@ export function CreateTripModal({
   }
 
   function toggleExpert(id: string) {
-    setSelectedIds((current) => (current.includes(id) ? current.filter((selected) => selected !== id) : [...current, id]))
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((selected) => selected !== id) : [...current, id],
+    )
   }
 
   function save() {
@@ -204,14 +196,21 @@ export function CreateTripModal({
   const selectedMatches = matchingResults.filter((match) => selectedIds.includes(match.id))
   const coverage = cityCoverage(
     cities.map((city) => city.id),
-    selectedMatches.map((match) => ({ id: match.id, cityIds: match.matchedCities.map((matched) => matched.cityId) })),
+    selectedMatches.map((match) => ({
+      id: match.id,
+      cityIds: match.matchedCities.map((matched) => matched.cityId),
+    })),
     organizerCityIds,
   )
   const matchName = (id: string) => matchingResults.find((match) => match.id === id)?.name ?? id
   const hasExpertsFor = (cityId: CityId) =>
     matchingResults.some((match) => match.matchedCities.some((matched) => matched.cityId === cityId))
 
-  const nothingFoundMessage = searching ? "Cerco…" : searchFailed ? "Ricerca non disponibile, riprova." : "Nessuna città trovata."
+  const nothingFoundMessage = searching
+    ? "Cerco…"
+    : searchFailed
+      ? "Ricerca non disponibile, riprova."
+      : "Nessuna città trovata."
 
   return (
     <Modal
@@ -229,9 +228,7 @@ export function CreateTripModal({
               <IconArrowLeft size={18} />
             </ActionIcon>
           )}
-          <Text component="span">
-            {step === "cities" ? "Passo 1 di 2 · Città" : "Passo 2 di 2 · Esperti"}
-          </Text>
+          <Text component="span">{step === "cities" ? "Passo 1 di 2 · Città" : "Passo 2 di 2 · Esperti"}</Text>
         </Group>
       }
       size="lg"

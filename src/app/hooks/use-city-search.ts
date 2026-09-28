@@ -30,12 +30,9 @@ export function useCitySearch(query: string, searchEnabled = true) {
     const timeout = setTimeout(() => {
       startSearch(async () => {
         try {
-          const response = await fetch(
-            `/api/cities?q=${encodeURIComponent(query)}`,
-            {
-              signal: controller.signal,
-            },
-          )
+          const response = await fetch(`/api/cities?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal,
+          })
           if (!response.ok) {
             setState({ query, results: [], failed: true })
             return

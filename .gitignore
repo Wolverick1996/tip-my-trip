@@ -14,8 +14,6 @@ next-env.d.ts
 *.log
 npm-debug.log*
 
-.vscode/*
-!.vscode/extensions.json
 .idea/
 
 coverage/

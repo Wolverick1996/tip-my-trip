@@ -16,11 +16,13 @@ export const listTrips = (
     const travelers = yield* (yield* TravelerRepository).findAll()
     const contactsById = new Map(travelers.map(({ id, contact }) => [id, contact]))
 
-    return trips.toSorted((a, b) => b.createdAt - a.createdAt).map((trip) => ({
-      ...trip,
-      experts: trip.experts.map((expert) => ({
-        ...expert,
-        contact: contactsById.get(expert.id),
-      })),
-    }))
+    return trips
+      .toSorted((a, b) => b.createdAt - a.createdAt)
+      .map((trip) => ({
+        ...trip,
+        experts: trip.experts.map((expert) => ({
+          ...expert,
+          contact: contactsById.get(expert.id),
+        })),
+      }))
   })

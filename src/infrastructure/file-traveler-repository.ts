@@ -13,9 +13,17 @@ const TravelersFile = Schema.mutable(
       name: Schema.String,
       languages: Schema.mutable(Schema.Array(Schema.String)),
       knownCities: Schema.mutable(
-        Schema.Array(Schema.Struct({ cityId: Schema.String, level: Schema.Literal("base", "expert", "local") })),
+        Schema.Array(
+          Schema.Struct({
+            cityId: Schema.String,
+            level: Schema.Literal("base", "expert", "local"),
+          }),
+        ),
       ),
-      contact: Schema.Struct({ whatsApp: Schema.optional(Schema.String), email: Schema.optional(Schema.String) }),
+      contact: Schema.Struct({
+        whatsApp: Schema.optional(Schema.String),
+        email: Schema.optional(Schema.String),
+      }),
     }),
   ),
 )
@@ -45,4 +53,7 @@ export function makeFileTravelerRepository(filePath: string, initialTravelers: R
   )
 }
 
-export const FileTravelerRepositoryLive = makeFileTravelerRepository(path.join(DATA_DIR, "travelers.json"), mockTravelers)
+export const FileTravelerRepositoryLive = makeFileTravelerRepository(
+  path.join(DATA_DIR, "travelers.json"),
+  mockTravelers,
+)

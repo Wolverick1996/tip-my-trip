@@ -72,8 +72,7 @@ export function RegisterForm() {
             defaultCountry="IT"
             value={form.values.whatsApp}
             numberInputProps={{
-              className:
-                "outline-none placeholder:text-(--mantine-color-placeholder)",
+              className: "outline-none placeholder:text-(--mantine-color-placeholder)",
             }}
             onChange={(value) => form.setFieldValue("whatsApp", value ?? "")}
           />

@@ -32,7 +32,9 @@ export const createTrip = (
       const match = matchesById.get(expertId)
       if (!match) {
         return yield* Effect.fail(
-          new InvalidTripError({ reason: "Un esperto selezionato non è più disponibile per questo viaggio." }),
+          new InvalidTripError({
+            reason: "Un esperto selezionato non è più disponibile per questo viaggio.",
+          }),
         )
       }
       experts.push({

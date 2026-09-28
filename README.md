@@ -18,6 +18,6 @@ Vedi [ROADMAP.md](./ROADMAP.md). Per la visione del progetto e come si lavora qu
 npm install
 npm run dev     # dev server
 npm test        # test Jest
-npm run lint    # ESLint
+npm run lint    # ESLint + Prettier
 npm run build   # build di produzione
 ```

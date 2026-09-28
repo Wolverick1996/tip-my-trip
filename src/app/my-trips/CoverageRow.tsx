@@ -15,9 +15,7 @@ export function CoverageRow({
   const covered = coveredBy.length > 0
   const details = [
     ...(covered ? coveredBy : []),
-    ...(knownByOrganizer
-      ? [covered ? "La conosci anche tu" : "La conosci tu"]
-      : []),
+    ...(knownByOrganizer ? [covered ? "La conosci anche tu" : "La conosci tu"] : []),
     ...(!covered && noExperts ? ["Nessun esperto disponibile"] : []),
   ]
   const status = covered

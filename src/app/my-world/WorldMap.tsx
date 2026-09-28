@@ -15,7 +15,10 @@ const LEVEL_BAR_COUNT: Record<ExpertiseLevel, number> = {
   local: 3,
 }
 
-const EXPERTISE_LEGEND = EXPERTISE_LEVELS.map((level) => ({ level, label: expertiseLevelLabel(level) }))
+const EXPERTISE_LEGEND = EXPERTISE_LEVELS.map((level) => ({
+  level,
+  label: expertiseLevelLabel(level),
+}))
 
 function levelBars(level: ExpertiseLevel, width = 6): string {
   const count = LEVEL_BAR_COUNT[level]
@@ -23,7 +26,8 @@ function levelBars(level: ExpertiseLevel, width = 6): string {
   const firstY = 12.5 - ((count - 1) * gap) / 2
   return Array.from(
     { length: count },
-    (_, index) => `<rect x="${12.5 - width / 2}" y="${firstY + index * gap - 0.75}" width="${width}" height="1.5" rx="0.75" fill="var(--mantine-color-text)"/>`,
+    (_, index) =>
+      `<rect x="${12.5 - width / 2}" y="${firstY + index * gap - 0.75}" width="${width}" height="1.5" rx="0.75" fill="var(--mantine-color-text)"/>`,
   ).join("")
 }
 
@@ -61,10 +65,9 @@ function FitToMarkers({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
       map.setView([knownCities[0].city.lat, knownCities[0].city.lng], 10)
       return
     }
-    map.fitBounds(
-      L.latLngBounds(knownCities.map((known) => [known.city.lat, known.city.lng])),
-      { padding: [40, 40] },
-    )
+    map.fitBounds(L.latLngBounds(knownCities.map((known) => [known.city.lat, known.city.lng])), {
+      padding: [40, 40],
+    })
   }, [knownCities, map])
 
   return null
@@ -115,9 +118,7 @@ export function WorldMap({ knownCities }: { knownCities: ResolvedKnownCity[] }) 
                 style={{ backgroundColor: expertiseLevelMapMarkerColor(level) }}
                 aria-hidden
               >
-                <span
-                  className="flex h-3 w-3 flex-col items-center justify-center gap-px rounded-full bg-(--mantine-color-white)"
-                >
+                <span className="flex h-3 w-3 flex-col items-center justify-center gap-px rounded-full bg-(--mantine-color-white)">
                   {Array.from({ length: LEVEL_BAR_COUNT[level] }, (_, index) => (
                     <span key={index} className="h-px w-2 bg-(--mantine-color-text)" />
                   ))}

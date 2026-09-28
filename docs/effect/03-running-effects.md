@@ -4,7 +4,7 @@ Usato per: il punto in cui un componente/route Next.js deve ottenere il risultat
 
 ## Il problema che risolve
 
-Tutto ciò che si scrive con `Effect.gen`/`pipe` (use case, chiamate al port, ecc.) costruisce una *descrizione* di un programma, non lo esegue — un po' come una Promise "lazy" invece che "eager". Finché si resta dentro il mondo Effect, si compongono descrizioni. React, però, lavora con Promise/valori concreti: da qualche parte serve un punto preciso in cui il mondo Effect "si accende" e produce un risultato reale.
+Tutto ciò che si scrive con `Effect.gen`/`pipe` (use case, chiamate al port, ecc.) costruisce una _descrizione_ di un programma, non lo esegue — un po' come una Promise "lazy" invece che "eager". Finché si resta dentro il mondo Effect, si compongono descrizioni. React, però, lavora con Promise/valori concreti: da qualche parte serve un punto preciso in cui il mondo Effect "si accende" e produce un risultato reale.
 
 ## Come si usa: il meccanismo di base
 
@@ -40,11 +40,11 @@ const results = await runtime.runPromise(findExpertsForTrip(cityIds, organizerId
 **Come fa `runtime` a "sapere" quale Layer usare per un Effect che non lo nomina mai?** Non c'è nessun binding per nome — è la stessa identità di `TravelerRepository` (il `Context.Tag` di `01`) usata in entrambi i posti come chiave. Ripercorrendo:
 
 1. **`findExpertsForTrip`** fa `yield* TravelerRepository` dentro il suo `Effect.gen`. Questo non dice "usa l'adapter su file" — dice solo "cerca nel Context corrente qualcosa registrato sotto la chiave `TravelerRepository`, e dammelo". Il tipo risultante (`Effect<..., ..., TravelerRepository>`) è un segnaposto: "mi serve questa chiave", non un riferimento a un'implementazione specifica.
-2. **`FileTravelerRepositoryLive`** è `Layer.succeed(TravelerRepository, {...implementazione...})` — costruisce un Context che contiene *esattamente* quella chiave, con quel valore.
+2. **`FileTravelerRepositoryLive`** è `Layer.succeed(TravelerRepository, {...implementazione...})` — costruisce un Context che contiene _esattamente_ quella chiave, con quel valore.
 3. **`ManagedRuntime.make(Layer.mergeAll(FileTravelerRepositoryLive, FileTripRepositoryLive))`** costruisce quel Context una volta e lo tiene pronto dentro l'oggetto `runtime`.
 4. Quando chiami `runtime.runPromise(findExpertsForTrip(...))`, il runtime fornisce quel Context all'Effect — è l'equivalente automatico di `Effect.provide(effect, quelContext)`. Quando l'esecuzione arriva a `yield* TravelerRepository`, cerca quella chiave nel Context fornito, la trova, e va avanti.
 
-Il punto chiave: `domain/traveler-repository.ts` esporta un'unica classe `TravelerRepository`, e sia `find-experts-for-trip.ts` sia `file-traveler-repository.ts` importano *quella stessa* classe — è il riferimento condiviso (non una stringa, non una convenzione di naming) a fare da chiave. Se per errore ne esistessero due copie diverse, il binding fallirebbe e TypeScript lo segnalerebbe a compile-time, perché i due `TravelerRepository` sarebbero tipi diversi.
+Il punto chiave: `domain/traveler-repository.ts` esporta un'unica classe `TravelerRepository`, e sia `find-experts-for-trip.ts` sia `file-traveler-repository.ts` importano _quella stessa_ classe — è il riferimento condiviso (non una stringa, non una convenzione di naming) a fare da chiave. Se per errore ne esistessero due copie diverse, il binding fallirebbe e TypeScript lo segnalerebbe a compile-time, perché i due `TravelerRepository` sarebbero tipi diversi.
 
 Le pagine tornano a conoscere solo i use case. Se domani l'implementazione cambiasse (es. un vero backend), si tocca solo `src/runtime.ts`.
 
@@ -61,7 +61,7 @@ Usato per: `GET /api/cities` (`src/app/api/cities/route.ts`, con `runSyncExit`) 
 `Effect.runSyncExit(effect)` esegue l'Effect in modo **sincrono** e restituisce un `Exit`, un valore che descrive com'è finita l'esecuzione. Non lancia mai, qualunque cosa sia successa dentro:
 
 - `Exit.Success`, con il valore;
-- `Exit.Failure`, con una **`Cause`**, che dice *perché* è fallito: un failure (`Fail`, con l'errore tipizzato), un defect (`Die`, con l'eccezione), un'interruzione, o una combinazione di questi.
+- `Exit.Failure`, con una **`Cause`**, che dice _perché_ è fallito: un failure (`Fail`, con l'errore tipizzato), un defect (`Die`, con l'eccezione), un'interruzione, o una combinazione di questi.
 
 ```ts
 const exit = Effect.runSyncExit(searchCitiesByQuery(query))
@@ -89,10 +89,10 @@ La scelta dipende da due domande:
 - **Il programma chiede servizi?** Lo dice `R` in `Effect<A, E, R>`. Se chiede un port (es. `TravelerRepository`) serve `runtime`, che contiene il `Layer`; se `R = never` basta `Effect`.
 - **Ha passi asincroni?** Se è tutto sincrono si usa `runSync…`; se c'è una Promise (una query a un database, o una funzione async come sotto), serve `runPromise…`.
 
-| | `R = never` | Con servizi |
-|---|---|---|
-| **Sincrono** | `Effect.runSyncExit` (`/api/cities`) | `runtime.runSyncExit` |
-| **Asincrono** | `Effect.runPromiseExit` | `runtime.runPromiseExit` (`/api/trip-matches`) |
+|               | `R = never`                          | Con servizi                                    |
+| ------------- | ------------------------------------ | ---------------------------------------------- |
+| **Sincrono**  | `Effect.runSyncExit` (`/api/cities`) | `runtime.runSyncExit`                          |
+| **Asincrono** | `Effect.runPromiseExit`              | `runtime.runPromiseExit` (`/api/trip-matches`) |
 
 Le versioni `…Exit` non lanciano mai: restituiscono l'esito, che poi `Exit.match` traduce in status HTTP.
 
@@ -115,7 +115,7 @@ if (!organizer) {
 
 `Effect.promise(thunk)` prende una funzione che ritorna una `Promise` e la trasforma in un `Effect<A>`: quando la pipeline arriva a quel punto, chiama il thunk, aspetta la Promise e continua con il valore risolto così com'è (qui `A` è `Traveler | undefined`). Da lì in poi il resto della pipeline — `Effect.fail`, la chiamata allo use case — è Effect normale, e arriva insieme a tutto il resto a `Exit.match` in fondo alla route.
 
-**`Effect.promise` vs `Effect.tryPromise`.** `Effect.promise` presuppone che la Promise non venga mai **rigettata**: se lo fosse, l'eccezione diventerebbe un *defect* (un `Die`, non un failure tipizzato — vedi `docs/effect/02-typed-errors.md`), lo stesso trattamento di un bug imprevisto. Va bene per `findCurrentUser`, che è `async` ma non contiene nessun `throw`. `Effect.tryPromise` è la versione per una Promise che *può* rigettare: prende in più una funzione `catch` che trasforma il rigetto in un errore tipizzato, così il fallimento entra nel tipo `E` invece di restare un defect — servirebbe per una `fetch` verso un servizio esterno o un'API di libreria che può lanciare, non qui.
+**`Effect.promise` vs `Effect.tryPromise`.** `Effect.promise` presuppone che la Promise non venga mai **rigettata**: se lo fosse, l'eccezione diventerebbe un _defect_ (un `Die`, non un failure tipizzato — vedi `docs/effect/02-typed-errors.md`), lo stesso trattamento di un bug imprevisto. Va bene per `findCurrentUser`, che è `async` ma non contiene nessun `throw`. `Effect.tryPromise` è la versione per una Promise che _può_ rigettare: prende in più una funzione `catch` che trasforma il rigetto in un errore tipizzato, così il fallimento entra nel tipo `E` invece di restare un defect — servirebbe per una `fetch` verso un servizio esterno o un'API di libreria che può lanciare, non qui.
 
 **Quando NON serve.** Se `findCurrentUser` fosse già scritta con Effect (invece che `async`), basterebbe comporla con un semplice `yield*`, senza passare da `Effect.promise` — il passaggio esiste solo per attraversare il confine tra i due mondi, non è un pattern da applicare sempre.
 

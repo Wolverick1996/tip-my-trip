@@ -9,12 +9,20 @@ import { findCurrentUser } from "../current-user"
 jest.mock("next/headers", () => ({ cookies: jest.fn() }))
 jest.mock("@/use-cases/get-traveler", () => ({ getTraveler: jest.fn() }))
 
-const traveler: Traveler = { id: "t-1", name: "Anna", languages: ["it"], knownCities: [], contact: {} }
+const traveler: Traveler = {
+  id: "t-1",
+  name: "Anna",
+  languages: ["it"],
+  knownCities: [],
+  contact: {},
+}
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>
 
 function withCookie(value?: string) {
-  const store: Pick<CookieStore, "get"> = { get: () => (value ? { name: "tipmytrip_user", value } : undefined) }
+  const store: Pick<CookieStore, "get"> = {
+    get: () => (value ? { name: "tipmytrip_user", value } : undefined),
+  }
   jest.mocked(cookies).mockResolvedValue(store as CookieStore)
 }
 

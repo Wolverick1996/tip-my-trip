@@ -38,5 +38,9 @@ export async function getCurrentUser(): Promise<Traveler> {
  */
 export async function setCurrentUserId(travelerId: TravelerId): Promise<void> {
   const store = await cookies()
-  store.set(USER_COOKIE_NAME, travelerId, { maxAge: ONE_YEAR_IN_SECONDS, httpOnly: true, sameSite: "lax" })
+  store.set(USER_COOKIE_NAME, travelerId, {
+    maxAge: ONE_YEAR_IN_SECONDS,
+    httpOnly: true,
+    sameSite: "lax",
+  })
 }

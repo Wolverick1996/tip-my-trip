@@ -76,12 +76,19 @@ export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
               <Group justify="space-between">
                 <Group gap="xs">
                   <Text size="sm">
-                    {entry.city.name} <Text component="span" c="dimmed" inherit>— {entry.city.country}</Text>
+                    {entry.city.name}{" "}
+                    <Text component="span" c="dimmed" inherit>
+                      — {entry.city.country}
+                    </Text>
                   </Text>
                   <ExpertiseBadge level={entry.level} />
                 </Group>
                 <Group gap="xs">
-                  <ActionIcon variant="subtle" onClick={() => openEdit(entry)} aria-label={`Modifica ${entry.city.name}`}>
+                  <ActionIcon
+                    variant="subtle"
+                    onClick={() => openEdit(entry)}
+                    aria-label={`Modifica ${entry.city.name}`}
+                  >
                     <IconPencil size={18} />
                   </ActionIcon>
                   <ActionIcon
@@ -101,7 +108,9 @@ export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
 
       <AddActionButton label="Aggiungi una città" onClick={openAdd} />
 
-      {modalOpen && <AddCityModal knownCities={knownCities} editing={editing} onClose={closeModal} onSaved={handleSaved} />}
+      {modalOpen && (
+        <AddCityModal knownCities={knownCities} editing={editing} onClose={closeModal} onSaved={handleSaved} />
+      )}
     </div>
   )
 }

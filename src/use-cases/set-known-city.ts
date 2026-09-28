@@ -14,7 +14,10 @@ export const setKnownCity = (
   Effect.gen(function* () {
     const repo = yield* TravelerRepository
     const traveler = yield* repo.findById(travelerId)
-    const updated: Traveler = { ...traveler, knownCities: upsertKnownCity(traveler.knownCities, cityId, level) }
+    const updated: Traveler = {
+      ...traveler,
+      knownCities: upsertKnownCity(traveler.knownCities, cityId, level),
+    }
     yield* repo.save(updated)
     return updated
   })

@@ -1,15 +1,25 @@
 "use client"
 
-import { ActionIcon, Alert, Button, Chip, Group, Loader, Modal, NavLink, ScrollArea, Stack, Text, TextInput } from "@mantine/core"
+import {
+  ActionIcon,
+  Alert,
+  Button,
+  Chip,
+  Group,
+  Loader,
+  Modal,
+  NavLink,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+} from "@mantine/core"
 import { IconAlertCircle, IconArrowLeft } from "@tabler/icons-react"
 import { useState } from "react"
 import type { CitySearchResult } from "@/app/api/cities/city-search-result"
 import { useCitySearch } from "@/app/hooks/use-city-search"
 import { EXPERTISE_LEVELS, expertiseLevelLabel, type ExpertiseLevel } from "@/domain/expertise-level"
-import {
-  expertiseLevelBadgeColor,
-  expertiseLevelChipOutlineColor,
-} from "@/app/expertise-level-colors"
+import { expertiseLevelBadgeColor, expertiseLevelChipOutlineColor } from "@/app/expertise-level-colors"
 import { setKnownCityAction } from "./actions"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 
@@ -19,22 +29,17 @@ export function AddCityModal({
   onClose,
   onSaved,
 }: {
-  knownCities: ResolvedKnownCity[];
-  editing: ResolvedKnownCity | null;
-  onClose: () => void;
-  onSaved: () => void;
+  knownCities: ResolvedKnownCity[]
+  editing: ResolvedKnownCity | null
+  onClose: () => void
+  onSaved: () => void
 }) {
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<CitySearchResult | null>(editing?.city ?? null)
   const [level, setLevel] = useState<ExpertiseLevel | null>(editing?.level ?? null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const {
-    results: visibleResults,
-    searching,
-    searchFailed,
-    canSearch,
-  } = useCitySearch(query, !selected)
+  const { results: visibleResults, searching, searchFailed, canSearch } = useCitySearch(query, !selected)
 
   function handleSelect(city: CitySearchResult) {
     const alreadyKnown = knownCities.find((known) => known.city.id === city.id)
@@ -74,11 +79,7 @@ export function AddCityModal({
       title={
         <Group gap={4} wrap="nowrap">
           {selected && (
-            <ActionIcon
-              variant="subtle"
-              onClick={handleBack}
-              aria-label="Torna alla ricerca città"
-            >
+            <ActionIcon variant="subtle" onClick={handleBack} aria-label="Torna alla ricerca città">
               <IconArrowLeft size={18} />
             </ActionIcon>
           )}
@@ -103,10 +104,10 @@ export function AddCityModal({
             </Text>
           )}
           {!searching && !searchFailed && canSearch && visibleResults.length === 0 && (
-              <Text size="sm" c="dimmed">
-                Nessuna città trovata.
-              </Text>
-            )}
+            <Text size="sm" c="dimmed">
+              Nessuna città trovata.
+            </Text>
+          )}
           <ScrollArea.Autosize>
             {visibleResults.map((city) => {
               const alreadyKnown = knownCities.find((known) => known.city.id === city.id)
@@ -116,14 +117,10 @@ export function AddCityModal({
                   type="button"
                   key={city.id}
                   label={`${city.name}, ${city.country}`}
-                  description={
-                    alreadyKnown
-                      ? `Già aggiunta · ${expertiseLevelLabel(alreadyKnown.level)}`
-                      : undefined
-                  }
+                  description={alreadyKnown ? `Già aggiunta · ${expertiseLevelLabel(alreadyKnown.level)}` : undefined}
                   onClick={() => handleSelect(city)}
                 />
-              );
+              )
             })}
           </ScrollArea.Autosize>
         </Stack>
@@ -132,10 +129,7 @@ export function AddCityModal({
           <Text size="sm">
             {selected.name}, {selected.country}
           </Text>
-          <Chip.Group
-            value={level}
-            onChange={(value) => setLevel(value as ExpertiseLevel)}
-          >
+          <Chip.Group value={level} onChange={(value) => setLevel(value as ExpertiseLevel)}>
             <Text size="sm" fw={500}>
               Livello di conoscenza
             </Text>

@@ -4,7 +4,7 @@ Usato per: controllare che l'email inserita in fase di registrazione abbia un fo
 
 ## Il problema che risolve
 
-Fino ad ora `registerTraveler` controllava solo "il campo non è vuoto" — un `if` su una stringa. Controllare un **formato** (un'email ha una `@` e un dominio con un punto) con `if`/regex sparsi a mano è la stessa idea ma diventa presto ripetitivo, e il risultato del controllo (vero/falso) non porta con sé nessuna informazione su *cosa* non va — bisognerebbe scrivere il messaggio d'errore a mano ogni volta, vicino a ogni `if`.
+Fino ad ora `registerTraveler` controllava solo "il campo non è vuoto" — un `if` su una stringa. Controllare un **formato** (un'email ha una `@` e un dominio con un punto) con `if`/regex sparsi a mano è la stessa idea ma diventa presto ripetitivo, e il risultato del controllo (vero/falso) non porta con sé nessuna informazione su _cosa_ non va — bisognerebbe scrivere il messaggio d'errore a mano ogni volta, vicino a ogni `if`.
 
 ## Cos'è `Schema`
 
@@ -39,13 +39,13 @@ Il messaggio d'errore resta scritto a mano vicino all'`if`, coerente con come `r
 
 ## Un altro filtro: `Schema.Literal`, uno tra un insieme di valori noti
 
-`Schema.pattern` verifica un *formato* (una forma che la stringa deve rispettare). Per le lingue il controllo è diverso: non c'è un pattern, serve sapere se il codice è uno tra quelli che l'app supporta davvero (le ~40 lingue con una bandiera in `LANGUAGE_FLAGS`, non tutte le ~184 di `iso-639-1`). `Schema.Literal` costruisce uno schema che accetta solo esattamente i valori passati:
+`Schema.pattern` verifica un _formato_ (una forma che la stringa deve rispettare). Per le lingue il controllo è diverso: non c'è un pattern, serve sapere se il codice è uno tra quelli che l'app supporta davvero (le ~40 lingue con una bandiera in `LANGUAGE_FLAGS`, non tutte le ~184 di `iso-639-1`). `Schema.Literal` costruisce uno schema che accetta solo esattamente i valori passati:
 
 ```ts
 export const isSupportedLanguage = Schema.is(Schema.Literal(...Object.keys(LANGUAGE_FLAGS)))
 ```
 
-`Object.keys(LANGUAGE_FLAGS)` dà l'elenco di codici a runtime (es. `["it", "en", "es", ...]`); `Schema.Literal(...)` li accetta come argomenti separati (da cui lo spread `...`) e costruisce uno schema che valida "questo valore è uno di questi, esattamente" — diverso da `Schema.pattern`, che valida una *forma*, non un'appartenenza a un insieme. Stesso `Schema.is` di prima per ottenere un `boolean` riusabile:
+`Object.keys(LANGUAGE_FLAGS)` dà l'elenco di codici a runtime (es. `["it", "en", "es", ...]`); `Schema.Literal(...)` li accetta come argomenti separati (da cui lo spread `...`) e costruisce uno schema che valida "questo valore è uno di questi, esattamente" — diverso da `Schema.pattern`, che valida una _forma_, non un'appartenenza a un insieme. Stesso `Schema.is` di prima per ottenere un `boolean` riusabile:
 
 ```ts
 isSupportedLanguage("it") // true — è tra le lingue con bandiera
@@ -74,6 +74,7 @@ const query = yield* Schema.decode(CityQuery)(rawQuery)
 `Schema.decode(schema)(valore)` restituisce un `Effect<string, ParseError>`: in caso di successo il valore trasformato, altrimenti un failure tipizzato `ParseError`, con il dettaglio di quale vincolo non è rispettato. Dentro `Effect.gen`, `yield*` estrae il valore, oppure interrompe il programma propagando il `ParseError`, come qualunque altro errore tipizzato (vedi `02-typed-errors.md`).
 
 **Quando `is` e quando `decode`.**
+
 - `Schema.is` basta quando serve un controllo sì o no dentro un `if`, e il messaggio d'errore lo si scrive a mano, come in `registerTraveler`.
 - `Schema.decode` serve quando si vuole il valore trasformato, oppure quando il fallimento deve entrare nel flusso di Effect.
 
@@ -102,11 +103,11 @@ Dallo schema TypeScript ricava anche il tipo, quindi descrizione a runtime e tip
 
 **Controllare un valore sconosciuto.** Le funzioni `decodeUnknown…` accettano un `unknown`, verificano che rispetti lo schema e restituiscono il valore tipizzato. Cambia solo il modo in cui segnalano il fallimento:
 
-| Funzione | Se i dati non vanno bene | Usata in |
-|---|---|---|
-| `Schema.decodeUnknownEither(schema)(valore)` | restituisce un `Either`: `Left` con un `ParseError`, `Right` con il valore | `createTripAction`: un input sbagliato diventa un messaggio d'errore per l'utente |
-| `Schema.decodeUnknownSync(schema)(valore)` | lancia un'eccezione | `readJsonFile`: un file corrotto è un guasto, e dentro `Effect.sync` diventa un defect (vedi `02-typed-errors.md`) |
-| `Schema.decode(schema)(valore)` | restituisce un `Effect` che fallisce con `ParseError` | la route `GET /api/cities` (sezione sopra) |
+| Funzione                                     | Se i dati non vanno bene                                                   | Usata in                                                                                                           |
+| -------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `Schema.decodeUnknownEither(schema)(valore)` | restituisce un `Either`: `Left` con un `ParseError`, `Right` con il valore | `createTripAction`: un input sbagliato diventa un messaggio d'errore per l'utente                                  |
+| `Schema.decodeUnknownSync(schema)(valore)`   | lancia un'eccezione                                                        | `readJsonFile`: un file corrotto è un guasto, e dentro `Effect.sync` diventa un defect (vedi `02-typed-errors.md`) |
+| `Schema.decode(schema)(valore)`              | restituisce un `Effect` che fallisce con `ParseError`                      | la route `GET /api/cities` (sezione sopra)                                                                         |
 
 ```ts
 const decoded = Schema.decodeUnknownEither(CreateTripInput)(input)

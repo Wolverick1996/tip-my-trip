@@ -22,11 +22,7 @@ export interface Traveler {
   contact: TravelerContact
 }
 
-export function upsertKnownCity(
-  knownCities: KnownCity[],
-  cityId: CityId,
-  level: ExpertiseLevel,
-): KnownCity[] {
+export function upsertKnownCity(knownCities: KnownCity[], cityId: CityId, level: ExpertiseLevel): KnownCity[] {
   return [...knownCities.filter((known) => known.cityId !== cityId), { cityId, level }]
 }
 

@@ -19,7 +19,10 @@ export default async function TripsPage() {
     const expertName = (id: string) => experts.find((expert) => expert.id === id)?.name ?? id
     const coverage = cityCoverage(
       trip.cityIds,
-      experts.map((expert) => ({ id: expert.id, cityIds: expert.matchedCities.map((known) => known.cityId) })),
+      experts.map((expert) => ({
+        id: expert.id,
+        cityIds: expert.matchedCities.map((known) => known.cityId),
+      })),
       organizerCityIds,
     )
 

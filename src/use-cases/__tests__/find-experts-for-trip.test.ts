@@ -80,9 +80,7 @@ test("non propone l'organizzatore come match di se stesso, anche se conosce la c
 
   const program = findExpertsForTrip(["madrid"], "organizer-1")
 
-  const results = await Effect.runPromise(
-    Effect.provide(program, testLayer(travelersWithSelfKnowingOrganizer)),
-  )
+  const results = await Effect.runPromise(Effect.provide(program, testLayer(travelersWithSelfKnowingOrganizer)))
 
   expect(results.map((result) => result.traveler.id)).not.toContain("organizer-1")
   expect(results).toHaveLength(1)

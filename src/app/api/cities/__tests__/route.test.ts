@@ -6,7 +6,14 @@ import { GET } from "../route"
 
 jest.mock("@/use-cases/search-cities", () => ({ searchCities: jest.fn() }))
 
-const lisbona: City = { id: "2267057", name: "Lisbona", country: "Portogallo", population: 1, lat: 0, lng: 0 }
+const lisbona: City = {
+  id: "2267057",
+  name: "Lisbona",
+  country: "Portogallo",
+  population: 1,
+  lat: 0,
+  lng: 0,
+}
 
 function get(query: string): Response {
   return GET(new NextRequest(`http://localhost/api/cities?q=${encodeURIComponent(query)}`))

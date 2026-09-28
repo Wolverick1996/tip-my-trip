@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   /**
@@ -6,6 +6,6 @@ const nextConfig: NextConfig = {
    * @prototype Serve solo finché il catalogo città è in memoria. Con un database sparirebbe.
    */
   serverExternalPackages: ["all-the-cities"],
-};
+}
 
-export default nextConfig;
+export default nextConfig

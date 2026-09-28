@@ -95,7 +95,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
 - **Nessun `error.tsx`/`not-found.tsx`: si usano le pagine di default di Next**
 
-  Gli errori previsti non arrivano mai a un error boundary: sessione mancante → `/register`, risultato assente → `undefined`, Server Action → `{ error }`. Restano solo i *defect* (es. file JSON corrotto), per cui la pagina 500 di default basta: in produzione non espone dettagli e il `digest` permette di ritrovare l'errore nei log.
+  Gli errori previsti non arrivano mai a un error boundary: sessione mancante → `/register`, risultato assente → `undefined`, Server Action → `{ error }`. Restano solo i _defect_ (es. file JSON corrotto), per cui la pagina 500 di default basta: in produzione non espone dettagli e il `digest` permette di ritrovare l'errore nei log.
 
   **Perché**: una pagina personalizzata cambierebbe solo il testo di un caso che non deve succedere.
 
@@ -142,7 +142,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   **Limiti accettati**:
   - funziona solo con disco scrivibile e un solo processo: demo locale, non hosting serverless;
-  - nessun lock né migrazione, è un file non un database: il contenuto è validato con `Schema` in lettura, un file corrotto o di forma sbagliata è un *defect* (`Effect.sync`), non un errore previsto;
+  - nessun lock né migrazione, è un file non un database: il contenuto è validato con `Schema` in lettura, un file corrotto o di forma sbagliata è un _defect_ (`Effect.sync`), non un errore previsto;
   - i mock si copiano nel file solo la prima volta: dopo averli cambiati va cancellata `.data/`;
   - l'id nel cookie non è firmato: chi lo cambia a mano diventa un altro utente (coerente con l'assenza di autenticazione).
 
@@ -213,7 +213,6 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
   Quando si salva un viaggio, `createTrip` rilegge dal repository i traveler selezionati e salva in `Trip.experts` l'id, il nome, le città del viaggio che conoscono con il livello e le lingue condivise. Questi dati spiegano il match e restano congelati. Il contatto è invece caricato dal profilo corrente quando si elencano i viaggi: può cambiare senza riscrivere lo snapshot; se il profilo non esiste più, il viaggio resta visibile senza link di contatto. Il client invia solo gli id selezionati; al salvataggio il server ricalcola i match con i profili aggiornati. Se un esperto selezionato non conosce più nessuna città del viaggio o non condivide più lingue con l'organizzatore, il viaggio non viene salvato e la finestra mostra un messaggio d'errore.
 
   **Perché**: il viaggio rappresenta la scelta fatta in quel momento, non una vista dinamica dei profili. Un array di snapshot è sufficiente per la selezione multipla e mantiene la schermata stabile senza introdurre una relazione separata.
-
 
 - **`TripRepository.delete` è un no-op silenzioso se il viaggio non esiste o non è dell'organizzatore**
 

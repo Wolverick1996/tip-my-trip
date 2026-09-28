@@ -38,9 +38,7 @@ export function matchTravelers(
       .filter((known) => trip.cityIds.includes(known.cityId))
       .map((known) => ({ cityId: known.cityId, level: known.level }))
 
-    const sharedLanguages = candidate.languages.filter((language) =>
-      organizer.languages.includes(language),
-    )
+    const sharedLanguages = candidate.languages.filter((language) => organizer.languages.includes(language))
 
     if (matchedCities.length === 0 || sharedLanguages.length === 0) {
       continue
@@ -48,8 +46,7 @@ export function matchTravelers(
 
     const coverageScore = (matchedCities.length / trip.cityIds.length) * 60
     const averageLevel =
-      matchedCities.reduce((sum, city) => sum + expertiseLevelValue(city.level), 0) /
-      matchedCities.length
+      matchedCities.reduce((sum, city) => sum + expertiseLevelValue(city.level), 0) / matchedCities.length
     const expertiseScore = (averageLevel / MAX_LEVEL_VALUE) * 40
 
     results.push({

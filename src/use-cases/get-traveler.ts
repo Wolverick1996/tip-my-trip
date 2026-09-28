@@ -3,7 +3,9 @@ import type { TravelerNotFoundError } from "@/domain/errors"
 import type { Traveler, TravelerId } from "@/domain/traveler"
 import { TravelerRepository } from "@/domain/traveler-repository"
 
-export const getTraveler = (travelerId: TravelerId): Effect.Effect<Traveler, TravelerNotFoundError, TravelerRepository> =>
+export const getTraveler = (
+  travelerId: TravelerId,
+): Effect.Effect<Traveler, TravelerNotFoundError, TravelerRepository> =>
   Effect.gen(function* () {
     const repo = yield* TravelerRepository
     return yield* repo.findById(travelerId)

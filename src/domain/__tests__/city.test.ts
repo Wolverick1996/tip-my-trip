@@ -4,13 +4,20 @@ import type { City } from "../city"
 const CITIES: City[] = [
   { id: "1", name: "Zürich", country: "Svizzera", population: 434335, lat: 47.3769, lng: 8.5417 },
   { id: "2", name: "Zug", country: "Svizzera", population: 30542, lat: 47.1662, lng: 8.5155 },
-  { id: "3", name: "Columbus", country: "Stati Uniti d'America", population: 898553, lat: 39.9612, lng: -82.9988 },
+  {
+    id: "3",
+    name: "Columbus",
+    country: "Stati Uniti d'America",
+    population: 898553,
+    lat: 39.9612,
+    lng: -82.9988,
+  },
   {
     id: "4",
     name: "Columbus",
     country: "Stati Uniti d'America",
     population: 23640,
-    lat: 32.4610,
+    lat: 32.461,
     lng: -84.9877,
   },
   { id: "5", name: "Madrid", country: "Spagna", population: 3223334, lat: 40.4168, lng: -3.7038 },

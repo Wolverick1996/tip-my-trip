@@ -26,7 +26,14 @@ export async function createTripAction(input: typeof CreateTripInput.Type): Prom
 
   const organizer = await getCurrentUser()
   const result = await runtime.runPromise(
-    Effect.either(createTrip({ organizerId: organizer.id, title, cityIds: [...cityIds], expertIds: [...expertIds] })),
+    Effect.either(
+      createTrip({
+        organizerId: organizer.id,
+        title,
+        cityIds: [...cityIds],
+        expertIds: [...expertIds],
+      }),
+    ),
   )
   return Either.isLeft(result) ? { error: result.left.reason } : {}
 }

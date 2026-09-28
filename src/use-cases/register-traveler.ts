@@ -16,9 +16,7 @@ export const registerTraveler = (
       return yield* Effect.fail(new InvalidRegistrationError({ reason: "Il nome è obbligatorio." }))
     }
     if (input.languages.length === 0) {
-      return yield* Effect.fail(
-        new InvalidRegistrationError({ reason: "Seleziona almeno una lingua." }),
-      )
+      return yield* Effect.fail(new InvalidRegistrationError({ reason: "Seleziona almeno una lingua." }))
     }
     if (input.languages.some((code) => !isSupportedLanguage(code))) {
       return yield* Effect.fail(
@@ -33,9 +31,7 @@ export const registerTraveler = (
       )
     }
     if (input.contact.email && !Schema.is(EmailAddress)(input.contact.email)) {
-      return yield* Effect.fail(
-        new InvalidRegistrationError({ reason: "L'email non è in un formato valido." }),
-      )
+      return yield* Effect.fail(new InvalidRegistrationError({ reason: "L'email non è in un formato valido." }))
     }
     const whatsApp = input.contact.whatsApp ? parseWhatsAppNumber(input.contact.whatsApp) : undefined
     if (input.contact.whatsApp && !whatsApp) {

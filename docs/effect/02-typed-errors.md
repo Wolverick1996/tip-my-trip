@@ -81,7 +81,7 @@ try {
 
 `try/catch` farebbe lo stesso lavoro per questo singolo caso, ma con una differenza concreta: `catch` in TypeScript tipizza sempre l'errore catturato come `unknown` (qualsiasi cosa può essere lanciata in JS, il compilatore non può saperlo), quindi va ristretto a mano. Con `Either`, `result.left` resta tipizzato esattamente `InvalidRegistrationError`, con il suo campo `reason` — l'informazione arriva dal canale d'errore di Effect, non da un `throw` generico, e attraversa il confine fino a React senza perdere precisione.
 
-Se in futuro servisse davvero distinguere *quale* errore è successo (non solo se è fallito), lo strumento è `Effect.catchTag(effect, "NomeTag", (errore) => altroEffect)` — intercetta solo quel tag, lascia propagare gli altri.
+Se in futuro servisse davvero distinguere _quale_ errore è successo (non solo se è fallito), lo strumento è `Effect.catchTag(effect, "NomeTag", (errore) => altroEffect)` — intercetta solo quel tag, lascia propagare gli altri.
 
 ## Nei test
 
@@ -98,8 +98,8 @@ Usato per: `GET /api/cities` (`src/app/api/cities/route.ts`), per distinguere un
 
 Effect distingue due modi in cui un programma può fallire:
 
-- **Failure**: un errore *previsto*, che fa parte del contratto della funzione. Sta nel tipo, nel canale `E` di `Effect<A, E, R>`, e chi chiama deve gestirlo. È tutto quello visto finora in questo file: `TravelerNotFoundError`, `InvalidRegistrationError`, e anche il `ParseError` che `Schema.decode` produce quando un dato non rispetta lo schema (vedi `04-validating-data-schema.md`).
-- **Defect**: un errore *imprevisto*, cioè un bug o un guasto. Non sta nel tipo, perché nessuno lo ha dichiarato e il chiamante non può farci niente di sensato se non registrarlo e rispondere "qualcosa è andato storto". Per esempio un'eccezione lanciata dentro un `Effect.sync(() => ...)`, o un errore reso fatale di proposito con `Effect.die`.
+- **Failure**: un errore _previsto_, che fa parte del contratto della funzione. Sta nel tipo, nel canale `E` di `Effect<A, E, R>`, e chi chiama deve gestirlo. È tutto quello visto finora in questo file: `TravelerNotFoundError`, `InvalidRegistrationError`, e anche il `ParseError` che `Schema.decode` produce quando un dato non rispetta lo schema (vedi `04-validating-data-schema.md`).
+- **Defect**: un errore _imprevisto_, cioè un bug o un guasto. Non sta nel tipo, perché nessuno lo ha dichiarato e il chiamante non può farci niente di sensato se non registrarlo e rispondere "qualcosa è andato storto". Per esempio un'eccezione lanciata dentro un `Effect.sync(() => ...)`, o un errore reso fatale di proposito con `Effect.die`.
 
 Esempio dalla route:
 

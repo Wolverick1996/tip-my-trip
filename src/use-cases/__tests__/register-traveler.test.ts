@@ -24,10 +24,7 @@ function testLayer(saved: Traveler[]) {
 test("fallisce se il nome è vuoto", async () => {
   const error = await Effect.runPromise(
     Effect.flip(
-      Effect.provide(
-        registerTraveler({ name: "  ", languages: ["it"], contact: { email: "a@b.com" } }),
-        testLayer([]),
-      ),
+      Effect.provide(registerTraveler({ name: "  ", languages: ["it"], contact: { email: "a@b.com" } }), testLayer([])),
     ),
   )
 
@@ -37,10 +34,7 @@ test("fallisce se il nome è vuoto", async () => {
 test("fallisce se non è selezionata nessuna lingua", async () => {
   const error = await Effect.runPromise(
     Effect.flip(
-      Effect.provide(
-        registerTraveler({ name: "Anna", languages: [], contact: { email: "a@b.com" } }),
-        testLayer([]),
-      ),
+      Effect.provide(registerTraveler({ name: "Anna", languages: [], contact: { email: "a@b.com" } }), testLayer([])),
     ),
   )
 
@@ -62,9 +56,7 @@ test("fallisce se una lingua selezionata non è supportata", async () => {
 
 test("fallisce se non c'è nessun contatto (né WhatsApp né email)", async () => {
   const error = await Effect.runPromise(
-    Effect.flip(
-      Effect.provide(registerTraveler({ name: "Anna", languages: ["it"], contact: {} }), testLayer([])),
-    ),
+    Effect.flip(Effect.provide(registerTraveler({ name: "Anna", languages: ["it"], contact: {} }), testLayer([]))),
   )
 
   expect(error._tag).toBe("InvalidRegistrationError")
@@ -87,7 +79,11 @@ test("fallisce se il numero WhatsApp non è in un formato valido", async () => {
   const error = await Effect.runPromise(
     Effect.flip(
       Effect.provide(
-        registerTraveler({ name: "Anna", languages: ["it"], contact: { whatsApp: "non un numero" } }),
+        registerTraveler({
+          name: "Anna",
+          languages: ["it"],
+          contact: { whatsApp: "non un numero" },
+        }),
         testLayer([]),
       ),
     ),
@@ -99,7 +95,11 @@ test("fallisce se il numero WhatsApp non è in un formato valido", async () => {
 test("accetta un numero WhatsApp con spazi, in formato internazionale, e lo salva normalizzato", async () => {
   const traveler = await Effect.runPromise(
     Effect.provide(
-      registerTraveler({ name: "Anna", languages: ["it"], contact: { whatsApp: "+39 333 123 4567" } }),
+      registerTraveler({
+        name: "Anna",
+        languages: ["it"],
+        contact: { whatsApp: "+39 333 123 4567" },
+      }),
       testLayer([]),
     ),
   )
@@ -112,7 +112,11 @@ test("registra un traveler valido, con knownCities vuoto, e lo salva nel reposit
 
   const traveler = await Effect.runPromise(
     Effect.provide(
-      registerTraveler({ name: "  Anna  ", languages: ["it", "en"], contact: { email: "a@b.com" } }),
+      registerTraveler({
+        name: "  Anna  ",
+        languages: ["it", "en"],
+        contact: { email: "a@b.com" },
+      }),
       testLayer(saved),
     ),
   )

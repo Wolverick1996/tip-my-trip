@@ -40,7 +40,13 @@ test("save aggiorna un traveler esistente invece di duplicarlo, e lo scrive su f
 })
 
 test("i dati salvati sopravvivono a un nuovo layer, come dopo un riavvio del server", async () => {
-  const newcomer: Traveler = { id: "new-1", name: "Nuovo", languages: ["it"], knownCities: [], contact: {} }
+  const newcomer: Traveler = {
+    id: "new-1",
+    name: "Nuovo",
+    languages: ["it"],
+    knownCities: [],
+    contact: {},
+  }
   await run(Effect.flatMap(TravelerRepository, (repo) => repo.save(newcomer)))
 
   const found = await run(Effect.flatMap(TravelerRepository, (repo) => repo.findById("new-1")))

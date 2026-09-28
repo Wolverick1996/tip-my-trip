@@ -54,7 +54,9 @@ describe("setKnownCity", () => {
   })
 
   test("fallisce con TravelerNotFoundError se il traveler non esiste", async () => {
-    const error = await Effect.runPromise(Effect.flip(Effect.provide(setKnownCity("non-esiste", "1", "base"), testLayer([]))))
+    const error = await Effect.runPromise(
+      Effect.flip(Effect.provide(setKnownCity("non-esiste", "1", "base"), testLayer([]))),
+    )
 
     expect(error._tag).toBe("TravelerNotFoundError")
   })
@@ -85,7 +87,9 @@ describe("removeKnownCity", () => {
   })
 
   test("fallisce con TravelerNotFoundError se il traveler non esiste", async () => {
-    const error = await Effect.runPromise(Effect.flip(Effect.provide(removeKnownCity("non-esiste", "1"), testLayer([]))))
+    const error = await Effect.runPromise(
+      Effect.flip(Effect.provide(removeKnownCity("non-esiste", "1"), testLayer([]))),
+    )
 
     expect(error._tag).toBe("TravelerNotFoundError")
   })

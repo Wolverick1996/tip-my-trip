@@ -26,16 +26,14 @@ const tripMatches = (cityIds: string[]) =>
     }
 
     const results = yield* findExpertsForTrip(cityIds, organizer.id)
-    return results.map(
-      ({ traveler, score, matchedCities, sharedLanguages }): TripMatch => ({
-        id: traveler.id,
-        name: traveler.name,
-        score,
-        matchedCities,
-        sharedLanguages,
-        contact: traveler.contact,
-      }),
-    )
+    return results.map(({ traveler, score, matchedCities, sharedLanguages }): TripMatch => ({
+      id: traveler.id,
+      name: traveler.name,
+      score,
+      matchedCities,
+      sharedLanguages,
+      contact: traveler.contact,
+    }))
   }).pipe(
     // Se l'organizzatore sparisce dal repository tra la lettura del cookie e questa chiamata (es. `.data/` cancellata a mano),
     // è la stessa situazione di una sessione scaduta: stesso trattamento (401), non un errore a parte.
@@ -43,7 +41,10 @@ const tripMatches = (cityIds: string[]) =>
   )
 
 export async function GET(request: NextRequest) {
-  const cityIds = (request.nextUrl.searchParams.get("cityIds") ?? "").split(",").map((cityId) => cityId.trim()).filter(Boolean)
+  const cityIds = (request.nextUrl.searchParams.get("cityIds") ?? "")
+    .split(",")
+    .map((cityId) => cityId.trim())
+    .filter(Boolean)
   const exit = await runtime.runPromiseExit(tripMatches(cityIds))
 
   return Exit.match(exit, {

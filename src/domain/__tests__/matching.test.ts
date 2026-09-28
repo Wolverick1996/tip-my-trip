@@ -48,11 +48,7 @@ test("calcola il punteggio come nell'esempio del product brief (copertura 60% + 
     ],
   })
 
-  const results = matchTravelers(
-    { cityIds: ["madrid", "barcellona", "siviglia"] },
-    { languages: ["it"] },
-    [candidate],
-  )
+  const results = matchTravelers({ cityIds: ["madrid", "barcellona", "siviglia"] }, { languages: ["it"] }, [candidate])
 
   expect(results).toHaveLength(1)
   expect(results[0].score).toBe(73)

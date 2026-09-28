@@ -27,7 +27,9 @@ afterEach(() => {
 })
 
 test("con meno di 2 caratteri non cerca", async () => {
-  const { result } = renderHook(({ query }) => useCitySearch(query), { initialProps: { query: "m" } })
+  const { result } = renderHook(({ query }) => useCitySearch(query), {
+    initialProps: { query: "m" },
+  })
 
   await act(async () => {
     await jest.advanceTimersByTimeAsync(200)
@@ -40,7 +42,9 @@ test("con meno di 2 caratteri non cerca", async () => {
 test("dopo il debounce cerca e restituisce i risultati", async () => {
   jest.mocked(fetch).mockResolvedValue({ ok: true, json: async () => [madrid] } as Response)
 
-  const { result } = renderHook(({ query }) => useCitySearch(query), { initialProps: { query: "madr" } })
+  const { result } = renderHook(({ query }) => useCitySearch(query), {
+    initialProps: { query: "madr" },
+  })
 
   await act(async () => {
     await jest.advanceTimersByTimeAsync(200)
@@ -54,7 +58,9 @@ test("dopo il debounce cerca e restituisce i risultati", async () => {
 test("digitare prima che scada il debounce annulla la ricerca precedente, non ancora partita", async () => {
   jest.mocked(fetch).mockResolvedValue({ ok: true, json: async () => [roma] } as Response)
 
-  const { rerender } = renderHook(({ query }) => useCitySearch(query), { initialProps: { query: "ro" } })
+  const { rerender } = renderHook(({ query }) => useCitySearch(query), {
+    initialProps: { query: "ro" },
+  })
   await act(async () => {
     await jest.advanceTimersByTimeAsync(100)
   })
@@ -72,7 +78,9 @@ test("una richiesta rimasta indietro non sovrascrive i risultati di una ricerca 
   const second = deferred<Response>()
   jest.mocked(fetch).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
 
-  const { result, rerender } = renderHook(({ query }) => useCitySearch(query), { initialProps: { query: "ro" } })
+  const { result, rerender } = renderHook(({ query }) => useCitySearch(query), {
+    initialProps: { query: "ro" },
+  })
   await act(async () => {
     await jest.advanceTimersByTimeAsync(200)
   })
@@ -95,7 +103,9 @@ test("una richiesta rimasta indietro non sovrascrive i risultati di una ricerca 
 test("una risposta non ok svuota i risultati e segnala l'errore, senza far propagare l'eccezione", async () => {
   jest.mocked(fetch).mockResolvedValue({ ok: false } as Response)
 
-  const { result } = renderHook(({ query }) => useCitySearch(query), { initialProps: { query: "xx" } })
+  const { result } = renderHook(({ query }) => useCitySearch(query), {
+    initialProps: { query: "xx" },
+  })
 
   await act(async () => {
     await jest.advanceTimersByTimeAsync(200)

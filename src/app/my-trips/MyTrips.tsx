@@ -46,7 +46,9 @@ export function MyTrips({ trips, organizerCityIds }: { trips: ResolvedTrip[]; or
   return (
     <div className="mt-6">
       {trips.length === 0 ? (
-        <EmptyState icon={<IconLuggage size={36} stroke={1.5} aria-hidden />}>Nessun viaggio ancora: crea il primo con il pulsante +</EmptyState>
+        <EmptyState icon={<IconLuggage size={36} stroke={1.5} aria-hidden />}>
+          Nessun viaggio ancora: crea il primo con il pulsante +
+        </EmptyState>
       ) : (
         <Stack gap="md">
           {trips.map((trip) => (
