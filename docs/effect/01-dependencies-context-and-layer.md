@@ -1,6 +1,6 @@
 # Dipendenze: `Context.Tag` e `Layer`
 
-Usati per: dare al use case `findExpertsForTrip` un modo di leggere i `Traveler` senza dover sapere se vengono da un array in memoria o (un domani) da un vero database.
+Usati per: dare allo use case `findExpertsForTrip` un modo di leggere i `Traveler` senza dover sapere se vengono da un array in memoria o (un domani) da un vero database.
 
 ## Come si fa DI in TypeScript puro
 
@@ -30,7 +30,7 @@ Due strade ingenue, prima di arrivare a quella fatta bene.
   }
   ```
 
-  Niente nella firma di `findExpertsForTrip(cityIds: CityId[])` rivela che dipende da qualcosa di esterno. Sostituirlo in un test richiede mockare il modulo intero (`jest.mock("./the-repo")`), non semplicemente passare un valore diverso.
+  Niente nella firma di `findExpertsForTrip(cityIds: CityId[])` rivela che dipende da qualcosa di esterno. Sostituirlo in un test richiede di mockare il modulo intero (`jest.mock("./the-repo")`), non semplicemente passare un valore diverso.
 
 La strada **fatta bene** in hexagonal architecture, in stile funzionale, è questa:
 
@@ -50,7 +50,7 @@ export const inMemoryTravelerRepository: TravelerRepository = {
 }
 ```
 
-**3. Il use case dichiara di dipendere dall'interfaccia**, come parametro — un solo punto di iniezione, non ripetuto a ogni chiamata interna:
+**3. Lo use case dichiara di dipendere dall'interfaccia**, come parametro — un solo punto di iniezione, non ripetuto a ogni chiamata interna:
 
 ```ts
 export const findExpertsForTrip = (
@@ -67,7 +67,7 @@ export const findExpertsForTrip = (
 findExpertsForTrip(cityIds, inMemoryTravelerRepository)
 ```
 
-Il use case conosce solo `TravelerRepository`, non `inMemoryTravelerRepository` né (un domani) Prisma o un altro ORM. Il binding è manuale (`Factory.ts` decide esplicitamente cosa passare), non un container con reflection/decorator: a runtime l'interfaccia sparisce del tutto (le interfacce TypeScript sono erase, non esistono compilate in JS), resta solo l'oggetto concreto passato come argomento.
+Lo use case conosce solo `TravelerRepository`, non `inMemoryTravelerRepository` né (un domani) Prisma o un altro ORM. Il binding è manuale (`Factory.ts` decide esplicitamente cosa passare), non un container con reflection/decorator: a runtime l'interfaccia sparisce del tutto (le interfacce TypeScript sono erase, non esistono compilate in JS), resta solo l'oggetto concreto passato come argomento.
 
 Questo pattern funziona bene e risolve già **visibilità e type-safety**: se `Factory.ts` dimentica di passare l'argomento, o l'oggetto non rispetta l'interfaccia, TypeScript non compila. Effect non aggiunge questo — TypeScript lo fa già bene anche senza Effect.
 
@@ -101,7 +101,7 @@ class TravelerRepository extends Context.Tag("TravelerRepository")<
 
 `yield* TravelerRepository` significa: "cerca nel `Context` corrente l'implementazione registrata sotto questa chiave, e dammela".
 
-**`Layer`** descrive come costruire un servizio da mettere in un `Context`. Un'app tipicamente ne ha più d'uno — uno per servizio — combinati insieme in un unico `Context` fornito una volta sola all'avvio, non un `Layer` a testa per ogni `Effect`. Nel nostro vertical slice, con un solo port, ce n'è uno solo e non c'è ancora nulla da combinare:
+**`Layer`** descrive come costruire un servizio da mettere in un `Context`. Un'app tipicamente ne ha più d'uno — uno per servizio — combinati insieme in un unico `Context` fornito una volta sola all'avvio, non un `Layer` a testa per ogni `Effect`. Nel nostro vertical slice, con un solo port, ce n'è uno solo e non c'è ancora nulla da combinare.
 
 Esempio con un adapter in memoria (nell'app l'adapter vero è `FileTravelerRepositoryLive`, che salva su file JSON; lo stesso schema si usa nei test):
 
@@ -117,9 +117,9 @@ const InMemoryTravelerRepositoryLive = Layer.succeed(
 
 Questa è la forma più semplice (`Layer.succeed`, consegna diretta di un'implementazione già pronta). `Layer` può fare anche di più — costruire un servizio che dipende da altri, che può fallire nella costruzione, o che gestisce un ciclo di vita (apertura/chiusura di una risorsa) — ma per i nostri adapter su file non serve: non c'è nessuna vera "costruzione" da fare, perché leggono e scrivono il file a ogni operazione.
 
-**Attenzione a non confondere due canali d'errore diversi, entrambi chiamati `E` ma in momenti diversi**: `Layer<ROut, E, RIn>` ha un proprio `E`, ma è l'errore che può capitare _mentre il Layer viene costruito/assemblato_ — non gli errori che i metodi del servizio restituiscono quando vengono chiamati dopo. `Layer.succeed` consegna un oggetto già pronto, senza nessuna vera costruzione (niente connessioni, niente asincronia): non c'è nulla che possa fallire in quel momento, quindi il suo `E` è `never`, anche se `findById` può fallire con `TravelerNotFoundError` — quell'errore vive nel tipo del _metodo_ (`Effect<Traveler, TravelerNotFoundError>`), non nel tipo del `Layer`. Sono due momenti distinti: costruzione del Layer (una volta, quando fornisci l'implementazione) vs. chiamata al metodo (ogni volta che il use case lo invoca). Se domani il repository diventasse un vero database, si userebbe `Layer.effect` invece di `Layer.succeed` (costruisce il servizio con un `Effect`, es. aprendo una connessione) — lì sì che il `Layer` potrebbe avere un `E` diverso da `never`.
+**Attenzione a non confondere due canali d'errore diversi, entrambi chiamati `E` ma in momenti diversi**: `Layer<ROut, E, RIn>` ha un proprio `E`, ma è l'errore che può capitare _mentre il Layer viene costruito/assemblato_ — non gli errori che i metodi del servizio restituiscono quando vengono chiamati dopo. `Layer.succeed` consegna un oggetto già pronto, senza nessuna vera costruzione (niente connessioni, niente asincronia): non c'è nulla che possa fallire in quel momento, quindi il suo `E` è `never`, anche se `findById` può fallire con `TravelerNotFoundError` — quell'errore vive nel tipo del _metodo_ (`Effect<Traveler, TravelerNotFoundError>`), non nel tipo del `Layer`. Sono due momenti distinti: costruzione del Layer (una volta, quando fornisci l'implementazione) vs. chiamata al metodo (ogni volta che lo use case lo invoca). Se domani il repository diventasse un vero database, si userebbe `Layer.effect` invece di `Layer.succeed` (costruisce il servizio con un `Effect`, es. aprendo una connessione) — lì sì che il `Layer` potrebbe avere un `E` diverso da `never`.
 
-## Come si usano insieme nel use case
+## Come si usano insieme nello use case
 
 Il port `TravelerRepository` (definito sopra) si richiede con `yield*`, dentro un `Effect.gen`:
 
@@ -135,7 +135,7 @@ const findExpertsForTrip = (cityIds: CityId[], organizerId: TravelerId) =>
 
 Il tipo risultante è `Effect<MatchResult[], SomeError, TravelerRepository>`. Quel terzo parametro ("Requirements") dice al type-checker: "per eseguire questo Effect, deve esistere un `TravelerRepository` nell'ambiente". Se ce lo si dimentica, il codice non compila — come col pattern interfaccia + Factory sopra, ma qui il requisito si accumula da solo componendo funzioni, senza dover ripetere il parametro a ogni nuovo livello.
 
-Per eseguire il use case, si "fornisce" il `Layer` (`InMemoryTravelerRepositoryLive`, definito sopra):
+Per eseguire lo use case, si "fornisce" il `Layer` (`InMemoryTravelerRepositoryLive`, definito sopra):
 
 ```ts
 Effect.provide(
@@ -148,7 +148,7 @@ Effect.provide(
 
 Usato per: fornire insieme `TravelerRepository` e `TripRepository` (`src/runtime.ts`).
 
-Un use case come `listTrips` chiede due servizi: il suo tipo è `Effect<…, never, TripRepository | TravelerRepository>`, cioè "servono entrambi". Ogni adapter è un `Layer` che fornisce un servizio solo, quindi vanno combinati in un `Layer` che li fornisce tutti e due:
+Uno use case come `listTrips` chiede due servizi: il suo tipo è `Effect<…, never, TripRepository | TravelerRepository>`, cioè "servono entrambi". Ogni adapter è un `Layer` che fornisce un servizio solo, quindi vanno combinati in un `Layer` che li fornisce tutti e due:
 
 ```ts
 export const runtime = ManagedRuntime.make(

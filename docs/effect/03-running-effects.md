@@ -1,6 +1,6 @@
 # Eseguire un Effect: il confine con React
 
-Usato per: il punto in cui un componente/route Next.js deve ottenere il risultato di un use case scritto con Effect.
+Usato per: il punto in cui un componente/route Next.js deve ottenere il risultato di uno use case scritto con Effect.
 
 ## Il problema che risolve
 
@@ -46,11 +46,11 @@ const results = await runtime.runPromise(findExpertsForTrip(cityIds, organizerId
 
 Il punto chiave: `domain/traveler-repository.ts` esporta un'unica classe `TravelerRepository`, e sia `find-experts-for-trip.ts` sia `file-traveler-repository.ts` importano _quella stessa_ classe — è il riferimento condiviso (non una stringa, non una convenzione di naming) a fare da chiave. Se per errore ne esistessero due copie diverse, il binding fallirebbe e TypeScript lo segnalerebbe a compile-time, perché i due `TravelerRepository` sarebbero tipi diversi.
 
-Le pagine tornano a conoscere solo i use case. Se domani l'implementazione cambiasse (es. un vero backend), si tocca solo `src/runtime.ts`.
+Le pagine tornano a conoscere solo gli use case. Se domani l'implementazione cambiasse (es. un vero backend), si tocca solo `src/runtime.ts`.
 
 Nei **test** invece si continua a usare `Effect.provide` diretto con un `Layer` costruito lì per lì (vedi `01`): lì si vuole un Layer diverso a ogni test, non uno condiviso e a lunga vita come `runtime`.
 
-**Alternativa in TypeScript puro.** Un use case sarebbe semplicemente una funzione `async` che ritorna una `Promise` direttamente — non esisterebbe questo passaggio esplicito, perché non c'è una fase "descrizione" separata da una fase "esecuzione". Il vantaggio del confine esplicito è che tutto ciò che sta a monte (use case, port, dominio) resta puramente dichiarativo e componibile finché non lo si esegue — comodo soprattutto nei test, dove si fornisce un `Layer` diverso e si esegue solo lì.
+**Alternativa in TypeScript puro.** Uno use case sarebbe semplicemente una funzione `async` che ritorna una `Promise` direttamente — non esisterebbe questo passaggio esplicito, perché non c'è una fase "descrizione" separata da una fase "esecuzione". Il vantaggio del confine esplicito è che tutto ciò che sta a monte (use case, port, dominio) resta puramente dichiarativo e componibile finché non lo si esegue — comodo soprattutto nei test, dove si fornisce un `Layer` diverso e si esegue solo lì.
 
 ## `runSyncExit` ed `Exit`: tradurre il risultato in una risposta HTTP
 

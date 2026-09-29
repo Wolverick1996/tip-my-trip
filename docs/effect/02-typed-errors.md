@@ -1,6 +1,6 @@
 # Errori tipizzati: `Data.TaggedError`
 
-Usati per: i fallimenti prevedibili di un use case, es. "organizzatore non trovato" in `findExpertsForTrip`, o dati di registrazione non validi in `registerTraveler`.
+Usati per: i fallimenti prevedibili di uno use case, es. "organizzatore non trovato" in `findExpertsForTrip`, o dati di registrazione non validi in `registerTraveler`.
 
 ## Il problema che risolvono
 
@@ -33,14 +33,14 @@ class TravelerNotFoundError extends Error {
 
 ## Come si usano
 
-Un use case che può fallire con questo errore ha un tipo come `Effect<Success, TravelerNotFoundError, Requirements>` — il fallimento è **nel tipo**, non nascosto in un `throw`. Chi chiama la funzione deve gestirlo esplicitamente (o propagarlo consapevolmente), perché il type-checker lo obbliga a farlo.
+Uno use case che può fallire con questo errore ha un tipo come `Effect<Success, TravelerNotFoundError, Requirements>` — il fallimento è **nel tipo**, non nascosto in un `throw`. Chi chiama la funzione deve gestirlo esplicitamente (o propagarlo consapevolmente), perché il type-checker lo obbliga a farlo.
 
-Il campo `_tag: "TravelerNotFoundError"` (aggiunto automaticamente da `Data.TaggedError`) serve a distinguere errori diversi, se un use case può fallire in più modi — concettualmente come uno `switch`/pattern match:
+Il campo `_tag: "TravelerNotFoundError"` (aggiunto automaticamente da `Data.TaggedError`) serve a distinguere errori diversi, se uno use case può fallire in più modi — concettualmente come uno `switch`/pattern match:
 
 ```ts
 switch (error._tag) {
   case "TravelerNotFoundError": /* ... */
-  case "TravelerNotFoundError": /* ... */
+  case "InvalidTripError": /* ... */
 }
 ```
 
@@ -54,7 +54,7 @@ Un errore tipizzato si usa solo per situazioni davvero eccezionali (un id che no
 
 Stesso principio dello stato vuoto già visto sopra: a volte un errore previsto va trattato come un valore assente per chi chiama, non rilanciato. `findCurrentUser` lo fa con la sessione: se il cookie punta a un profilo cancellato, `getTraveler` fallisce con `TravelerNotFoundError`, ma la funzione deve solo restituire `undefined`, come se la sessione non ci fosse — non propagare quell'errore. Lo strumento che rende possibile trattare un fallimento come un valore normale su cui fare un `if`, invece che come qualcosa da rilanciare o da gestire nel canale d'errore di Effect, è `Either`.
 
-**`Either<A, E>`** è un tipo dato che rappresenta uno dei due possibili esiti di qualcosa: un successo (`Right(valore)`, con un `A`) o un fallimento (`Left(errore)`, con un `E`) — mai entrambi, sempre uno dei due. Stesso principio di `Option` (che rappresenta "un valore o niente"), ma qui il "niente" porta con sé un'informazione — l'errore — invece di essere vuoto.
+**`Either<A, E>`** è un tipo di dato che rappresenta uno dei due possibili esiti di qualcosa: un successo (`Right(valore)`, con un `A`) o un fallimento (`Left(errore)`, con un `E`) — mai entrambi, sempre uno dei due. Stesso principio di `Option` (che rappresenta "un valore o niente"), ma qui il "niente" porta con sé un'informazione — l'errore — invece di essere vuoto.
 
 **`Effect.either(effect)`** prende un `Effect<A, E, R>` che può fallire e lo trasforma in un `Effect<Either<A, E>, never, R>`: non fallisce **mai** (il canale errore diventa `never`) — l'eventuale fallimento originale diventa un valore `Left(errore)` normale, non qualcosa che va gestito nel canale d'errore. Dopo averlo eseguito, hai in mano un oggetto JS qualsiasi, non più "un Effect":
 

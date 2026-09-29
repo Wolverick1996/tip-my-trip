@@ -13,264 +13,270 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
 ## Dominio e matching
 
-- **Un solo tipo `Traveler`, nessun ruolo separato**
+### Un solo tipo `Traveler`, nessun ruolo separato
 
-  Chi si registra può comparire come esperto (se indica città conosciute) e creare viaggi come organizzatore: nel dominio non esistono `Expert` e `TravelOrganizer` distinti.
+Chi si registra può comparire come esperto (se indica città conosciute) e creare viaggi come organizzatore: nel dominio non esistono `Expert` e `TravelOrganizer` distinti.
 
-  **Perché**: nella realtà la stessa persona ricopre spesso entrambi i ruoli.
+**Perché**: nella realtà la stessa persona ricopre spesso entrambi i ruoli.
 
-- **Lingua come filtro di esclusione, non come peso nel punteggio**
+### Lingua come filtro di esclusione, non come peso nel punteggio
 
-  `matchTravelers` scarta un candidato che non condivide nessuna lingua con l'organizzatore (e ovviamente chi non conosce nessuna città del viaggio). L'organizzatore stesso ovviamente non compare mai tra i propri risultati.
+`matchTravelers` scarta un candidato che non condivide nessuna lingua con l'organizzatore (e ovviamente chi non conosce nessuna città del viaggio). L'organizzatore stesso ovviamente non compare mai tra i propri risultati.
 
-  **Perché**: un match con cui non si può parlare è inutilizzabile a prescindere da quanto il candidato conosca la città, quindi non deve avere un punteggio.
+**Perché**: un match con cui non si può parlare è inutilizzabile a prescindere da quanto il candidato conosca la città, quindi non deve avere un punteggio.
 
-- **Punteggio: copertura 60% + livello di expertise 40%**
+### Punteggio: copertura 60% + livello di expertise 40%
 
-  Il punteggio 0-100 somma la copertura (quota delle città del viaggio che il candidato conosce, peso 60) e il livello medio sulle città in comune (peso 40). Formula, esempio e ordinamento sono in `docs/product-brief.md`.
+Il punteggio 0-100 somma la copertura (quota delle città del viaggio che il candidato conosce, peso 60) e il livello medio sulle città in comune (peso 40). Formula, esempio e ordinamento sono in `docs/product-brief.md`.
 
-  **Perché**: sono le due dimensioni che restano dopo i filtri, e la copertura conta un po' di più. I pesi sono arbitrari ma facili da spiegare e da cambiare (moltiplicatori su rapporti 0-1).
+**Perché**: sono le due dimensioni che restano dopo i filtri, e la copertura conta un po' di più. I pesi sono arbitrari ma facili da spiegare e da cambiare (moltiplicatori su rapporti 0-1).
 
-- **Città conosciute: `setKnownCity` e `removeKnownCity`, invariante nel dominio**
+### Città conosciute: `setKnownCity` e `removeKnownCity`, invariante nel dominio
 
-  Aggiunta e modifica del livello sono un solo use case, `setKnownCity(travelerId, cityId, level)`: se la città è già conosciuta ne aggiorna il livello, altrimenti la aggiunge. La rimozione è un use case distinto, `removeKnownCity(travelerId, cityId)`. L'invariante "al massimo un livello per città" sta nel dominio, nella funzione pura `upsertKnownCity` di `domain/traveler.ts`, e si testa senza repository.
+Aggiunta e modifica del livello sono un solo use case, `setKnownCity(travelerId, cityId, level)`: se la città è già conosciuta ne aggiorna il livello, altrimenti la aggiunge. La rimozione è uno use case distinto, `removeKnownCity(travelerId, cityId)`. L'invariante "al massimo un livello per città" sta nel dominio, nella funzione pura `upsertKnownCity` di `domain/traveler.ts`, e si testa senza repository.
 
-  **Perché**: per l'utente aggiungere e modificare sono lo stesso flusso (riselezionare una città già conosciuta apre la modifica). La rimozione ha input diversi e richiede conferma.
+**Perché**: per l'utente aggiungere e modificare sono lo stesso flusso (riselezionare una città già conosciuta apre la modifica). La rimozione ha input diversi e richiede conferma.
 
-- **`TravelerRepository.save` è un upsert**
+### `TravelerRepository.save` è un upsert
 
-  `save(traveler)` sostituisce il traveler se l'id esiste già, altrimenti lo inserisce. Non esiste un `update` separato.
+`save(traveler)` sostituisce il traveler se l'id esiste già, altrimenti lo inserisce. Non esiste un `update` separato.
 
-  **Perché**: persistere lo stato corrente di un aggregato è una sola operazione, che sia la prima registrazione o una modifica. Un `update` introdurrebbe la precondizione "deve già esistere" e un nuovo errore senza significato di dominio. Gli adapter su file (vedi "Persistenza") lo implementano sostituendo il record con lo stesso id.
+**Perché**: persistere lo stato corrente di un aggregato è una sola operazione, che sia la prima registrazione o una modifica. Un `update` introdurrebbe la precondizione "deve già esistere" e un nuovo errore senza significato di dominio. Gli adapter su file (vedi [Persistenza](#persistenza-repository-salvati-in-file-json-locali-cookie-con-il-solo-id)) lo implementano sostituendo il record con lo stesso id.
 
-- **`findExpertsForTrip`: `TravelerRepository.findAll()` più scan in memoria, nessun metodo di query mirato**
+### `findExpertsForTrip`: `TravelerRepository.findAll()` più scan in memoria, nessun metodo di query mirato
 
-  `findExpertsForTrip` carica tutti i traveler con `findAll()` e passa l'intero elenco a `matchTravelers`, che fa un filtro/scan lineare in `domain/matching.ts`. Il port non ha un metodo tipo `findByCityIds`.
+`findExpertsForTrip` carica tutti i traveler con `findAll()` e passa l'intero elenco a `matchTravelers`, che fa un filtro/scan lineare in `domain/matching.ts`. Il port non ha un metodo tipo `findByCityIds`.
 
-  **Perché**: lo storage reale oggi è un file JSON (`file-traveler-repository.ts`), riletto e parsato per intero a ogni operazione (`readJsonFile`/`read()`). Un metodo di query più mirato sul port non ridurrebbe questo costo: l'adapter dovrebbe comunque leggere e parsare tutto il file, e poi filtrare in memoria esattamente come fa oggi `matchTravelers` — sposterebbe solo dove avviene lo stesso scan, senza eliminarlo. Un'interfaccia di query ha senso solo quando lo storage sottostante può davvero usarla per evitare lavoro, cioè con un indice o un database.
+**Perché**: lo storage reale oggi è un file JSON (`file-traveler-repository.ts`), riletto e parsato per intero a ogni operazione (`readJsonFile`/`read()`). Un metodo di query più mirato sul port non ridurrebbe questo costo: l'adapter dovrebbe comunque leggere e parsare tutto il file, e poi filtrare in memoria esattamente come fa oggi `matchTravelers` — sposterebbe solo dove avviene lo stesso scan, senza eliminarlo. Un'interfaccia di query ha senso solo quando lo storage sottostante può davvero usarla per evitare lavoro, cioè con un indice o un database.
 
-  **Scartato**: aggiungere `findByCityIds` (o simile) al port ora. Sarebbe un'astrazione prematura — un vantaggio "sulla carta" che l'adapter concreto non può al momento sfruttare.
+**Scartato**: aggiungere `findByCityIds` (o simile) al port ora. Sarebbe un'astrazione prematura — un vantaggio "sulla carta" che l'adapter concreto non può al momento sfruttare.
 
-  **Limiti accettati**: `file-traveler-repository.ts` non tiene i traveler in memoria tra una richiesta e l'altra, quindi ogni matching rilegge, riparsa e rivalida l'intero file prima di poter scartare un candidato — un costo che cresce con la dimensione del file, già accettato in "Persistenza" per le scritture e qui esteso alla lettura. Oggi è irrilevante: `/api/trip-matches` viene chiamata una sola volta per viaggio creato (quando il wizard arriva allo step "esperti", vedi `CreateTripModal.tsx`), su una trentina di traveler mock.
+**Limiti accettati**: `file-traveler-repository.ts` non tiene i traveler in memoria tra una richiesta e l'altra, quindi ogni matching rilegge, riparsa e rivalida l'intero file prima di poter scartare un candidato — un costo che cresce con la dimensione del file, già accettato in "Persistenza" per le scritture e qui esteso alla lettura. Oggi è irrilevante: `/api/trip-matches` viene chiamata una sola volta per viaggio creato (quando il wizard arriva allo step "esperti", vedi `CreateTripModal.tsx`), su una trentina di traveler mock.
 
-  **In produzione**: con un database indicizzato (es. per città conosciuta) dietro lo stesso port, un metodo di query che filtra lato storage (`findByCityIds` o equivalente) evita di leggere e trasferire record che non servono al match — qui il vantaggio è reale, perché la query passerebbe per I/O verso uno storage esterno invece che per un array già in memoria di processo.
+**In produzione**: con un database indicizzato (es. per città conosciuta) dietro lo stesso port, un metodo di query che filtra lato storage (`findByCityIds` o equivalente) evita di leggere e trasferire record che non servono al match — qui il vantaggio è reale, perché la query passerebbe per I/O verso uno storage esterno invece che per un array già in memoria di processo.
 
 ## Struttura e convenzioni
 
-- **Struttura delle cartelle**
+### Struttura delle cartelle
 
-  ```
-  src/
-    app/              # routing Next.js e codice Presentation
-      components/     # componenti condivisi tra più route
-      hooks/          # hook React condivisi tra più route (es. useCitySearch)
-      lib/            # funzioni condivise tra più route, non componenti né hook (es. runAction)
-    domain/           # tipi, regole pure, port, errori tipizzati
-    use-cases/        # un file per use case
-    infrastructure/   # adapter dei port (su file JSON), catalogo città, dati mock
-    runtime.ts        # ManagedRuntime: sceglie gli adapter veri (composition root)
-    current-user.ts   # sessione: id nel cookie, traveler dal repository
-    user-cookie.ts    # solo il nome del cookie, condiviso da proxy e sessione
-    proxy.ts          # redirect e protezione delle API
-  ```
+```
+src/
+  app/              # routing Next.js e codice Presentation
+    components/     # componenti condivisi tra più route
+    hooks/          # hook React condivisi tra più route (es. useCitySearch)
+    lib/            # funzioni condivise tra più route, non componenti né hook (es. runAction)
+  domain/           # tipi, regole pure, port, errori tipizzati
+  use-cases/        # un file per use case
+  infrastructure/   # adapter dei port (su file JSON), catalogo città, dati mock
+  runtime.ts        # ManagedRuntime: sceglie gli adapter veri (composition root)
+  current-user.ts   # sessione: id nel cookie, traveler dal repository
+  user-cookie.ts    # solo il nome del cookie, condiviso da proxy e sessione
+  proxy.ts          # redirect e protezione delle API
+```
 
-  - I port stanno in `domain/`: è il dominio a dichiarare di cosa ha bisogno, l'infrastruttura lo implementa. Così `domain/` non dipende da React, Next.js né dalle implementazioni concrete, e si testa in isolamento.
-  - La Presentation (`app/`) non importa mai da `infrastructure/`: passa sempre da uno use case, anche quando è un semplice inoltro (es. `getCity`), così cambiare un adapter non tocca le pagine.
-  - `infrastructure/` è piatta: sottocartelle servirebbero solo con più implementazioni dello stesso port (es. su file vs su database).
-  - Un componente applicativo sta in `src/app/components/`, un hook in `src/app/hooks/`, una funzione condivisa che non è né l'uno né l'altro (es. `runAction`, `expertiseLevelBadgeColor`) in `src/app/lib/`, solo se la importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no. Le primitive di interfaccia non rientrano in questa regola: vengono da `@mantine/core`, non sono file del progetto (vedi "UI e design system").
-  - I dati di riferimento senza logica né implementazioni alternative (lingue selezionabili in `domain/language.ts`, livelli in `domain/expertise-level.ts`, catalogo città in `infrastructure/city-catalog.ts`) sono esportati direttamente, senza port. Lingue e livelli stanno in `domain/` perché sono scelte del prodotto; il catalogo città sta in `infrastructure/` perché è un dataset esterno letto da disco (con `fs`, solo lato server).
-  - Il nome del cookie sta da solo in `user-cookie.ts` perché lo importa anche `proxy.ts`: prenderlo da `current-user.ts` trascinerebbe nel proxy anche `runtime` e `next/headers`.
-  - I nomi leggibili dei valori di dominio stanno accanto al tipo (`getLanguageName`, `expertiseLevelLabel`, `EXPERTISE_LEVELS`): "Base", "Expert", "Local" sono vocabolario del prodotto, non di una schermata.
+- I port stanno in `domain/`: è il dominio a dichiarare di cosa ha bisogno, l'infrastruttura lo implementa. Così `domain/` non dipende da React, Next.js né dalle implementazioni concrete, e si testa in isolamento.
+- La Presentation (`app/`) non importa mai da `infrastructure/`: passa sempre da uno use case, anche quando è un semplice inoltro (es. `getCity`), così cambiare un adapter non tocca le pagine.
+- `infrastructure/` è piatta: sottocartelle servirebbero solo con più implementazioni dello stesso port (es. su file vs su database).
+- Un componente applicativo sta in `src/app/components/`, un hook in `src/app/hooks/`, una funzione condivisa che non è né l'uno né l'altro (es. `runAction`, `expertiseLevelBadgeColor`) in `src/app/lib/`, solo se lo importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no. Le primitive di interfaccia non rientrano in questa regola: vengono da `@mantine/core`, non sono file del progetto (vedi [UI e design system](#ui-e-design-system)).
+- I dati di riferimento senza logica né implementazioni alternative (lingue selezionabili in `domain/language.ts`, livelli in `domain/expertise-level.ts`, catalogo città in `infrastructure/city-catalog.ts`) sono esportati direttamente, senza port. Lingue e livelli stanno in `domain/` perché sono scelte del prodotto; il catalogo città sta in `infrastructure/` perché è un dataset esterno letto da disco (con `fs`, solo lato server).
+- Il nome del cookie sta da solo in `user-cookie.ts` perché lo importa anche `proxy.ts`: prenderlo da `current-user.ts` trascinerebbe nel proxy anche `runtime` e `next/headers`.
+- I nomi leggibili dei valori di dominio stanno accanto al tipo (`getLanguageName`, `expertiseLevelLabel`, `EXPERTISE_LEVELS`): "Base", "Expert", "Local" sono vocabolario del prodotto, non di una schermata.
 
-- **Quando usare Effect**
+### Quando usare Effect
 
-  Effect si usa solo quando risolve uno di due problemi: una dipendenza da iniettare (un port, con `Context.Tag` e `Layer`) o un errore previsto da propagare nel tipo. Il resto è TypeScript normale: usarlo per uniformità aggiungerebbe cerimonia senza benefici.
+Effect si usa solo quando risolve uno di due problemi: una dipendenza da iniettare (un port, con `Context.Tag` e `Layer`) o un errore previsto da propagare nel tipo. Il resto è TypeScript normale: usarlo per uniformità aggiungerebbe cerimonia senza benefici.
 
-  Un risultato assente non è un errore: una città non trovata è `undefined`, una ricerca senza risultati è un array vuoto (vedi `docs/effect/02-typed-errors.md`, "fallimento vs nessun risultato").
+Un risultato assente non è un errore: una città non trovata è `undefined`, una ricerca senza risultati è un array vuoto (vedi `docs/effect/02-typed-errors.md`, "fallimento vs nessun risultato").
 
-  Eccezione voluta: le route lette dal client e le Server Action che scrivono, scritte interamente con Effect per esercitare il pattern — oggi `GET /api/cities` (vedi "Ricerca città dal client"), `GET /api/trip-matches` (vedi "Viaggi") e le 5 Server Action.
+Eccezione voluta: le route lette dal client e le Server Action che scrivono, scritte interamente con Effect per esercitare il pattern — oggi `GET /api/cities` (vedi [Ricerca città dal client](#ricerca-città-dal-client-route-handler-get-apicities-non-server-action)), `GET /api/trip-matches` (vedi [Viaggi](#viaggi)) e le 5 Server Action.
 
-- **Moduli usati da client component: mai dipendenze, neanche indirette, dal catalogo città**
+### Moduli usati da client component: mai dipendenze, neanche indirette, dal catalogo città
 
-  Un modulo importato da un client component non deve raggiungere `infrastructure/city-catalog.ts`. Le pagine che mostrano il nome di una città da un id sono Server Component e chiamano `getCity`; i client component ricevono dati già risolti (es. `ResolvedKnownCity`) o usano solo moduli senza dipendenze (`domain/expertise-level.ts`).
+Un modulo importato da un client component non deve raggiungere `infrastructure/city-catalog.ts`. Le pagine che mostrano il nome di una città da un id sono Server Component e chiamano `getCity`; i client component ricevono dati già risolti (es. `ResolvedKnownCity`) o usano solo moduli senza dipendenze (`domain/expertise-level.ts`).
 
-  **Perché**: il catalogo carica `all-the-cities`, che usa `fs`. Se un solo export di un modulo arriva nel bundle del browser ci arriva tutto il modulo con le sue importazioni (il tree-shaking non lo evita, il caricamento ha effetti collaterali), e il build fallisce con "Can't resolve 'fs'". Il confine client/server va rispettato a livello di file.
+**Perché**: il catalogo carica `all-the-cities`, che usa `fs`. Se un solo export di un modulo arriva nel bundle del browser ci arriva tutto il modulo con le sue importazioni (il tree-shaking non lo evita, il caricamento ha effetti collaterali), e il build fallisce con "Can't resolve 'fs'". Il confine client/server va rispettato a livello di file.
 
-- **Server Action che scrivono: parametro tipizzato dallo `Schema`, validato comunque a runtime, ritorno `Promise<{ error?: string }>`**
+### Server Action che scrivono: parametro tipizzato dallo `Schema`, validato comunque a runtime, ritorno `Promise<{ error?: string }>`
 
-  Ogni Server Action con un parametro oggetto (non `registerAction`, che riceve una `FormData`) lo tipizza derivandolo dallo `Schema.Struct` che lo descrive (`typeof CreateTripInput.Type`), o dall'alias di dominio per un semplice `Schema.String` (`CityId`, `TripId`). Il corpo valida comunque con `Schema.decodeUnknown` dentro un `Effect.gen` e ritorna `{ error?: string }` invece di lanciare: `{}` per il successo, `{ error }` per input malformato o regola violata. Il client controlla `result.error`, senza `try/catch`.
+Ogni Server Action con un parametro oggetto (non `registerAction`, che riceve una `FormData`) lo tipizza derivandolo dallo `Schema.Struct` che lo descrive (`typeof CreateTripInput.Type`), o dall'alias di dominio per un semplice `Schema.String` (`CityId`, `TripId`). Il corpo valida comunque con `Schema.decodeUnknown` dentro un `Effect.gen` e ritorna `{ error?: string }` invece di lanciare: `{}` per il successo, `{ error }` per input malformato o regola violata. Il client controlla `result.error`, senza `try/catch`.
 
-  **Perché**: una Server Action è un endpoint `POST` raggiungibile anche da fuori la UI che la invoca, quindi il tipo del parametro protegge solo le chiamate scritte dentro il codebase, non chi chiama da fuori — la validazione a runtime resta comunque obbligatoria. Vale anche per `FormData`: i suoi valori sono garantiti stringa o `File`, ma non garantiti validi, per questo il contenuto resta validato dentro `registerTraveler`.
+**Perché**: una Server Action è un endpoint `POST` raggiungibile anche da fuori la UI che la invoca, quindi il tipo del parametro protegge solo le chiamate scritte dentro il codebase, non chi chiama da fuori — la validazione a runtime resta comunque obbligatoria. Vale anche per `FormData`: i suoi valori sono garantiti stringa o `File`, ma non garantiti validi, per questo il contenuto resta validato dentro `registerTraveler`.
 
-  **Scartato**: parametro `unknown`. Non aggiunge protezione, che viene dalla validazione non dal tipo, ma fa perdere a `tsc` il controllo sulle chiamate interne. Un tipo derivato dallo stesso `Schema.Struct` tiene un'unica fonte di verità senza indebolire nulla.
+**Scartato**: parametro `unknown`. Non aggiunge protezione, che viene dalla validazione non dal tipo, ma fa perdere a `tsc` il controllo sulle chiamate interne. Un tipo derivato dallo stesso `Schema.Struct` tiene un'unica fonte di verità senza indebolire nulla.
 
-  **Limiti accettati**: la validazione scarta forma e valori non ammessi, non tutte le regole di business, che restano nello use case o nel dominio (es. `InvalidTripError`).
+**Limiti accettati**: la validazione scarta forma e valori non ammessi, non tutte le regole di business, che restano nello use case o nel dominio (es. `InvalidTripError`).
 
-- **Server Action scritte interamente con Effect, helper condiviso `runAction` per tradurre l'esito**
+### Server Action scritte interamente con Effect, helper condiviso `runAction` per tradurre l'esito
 
-  Tutte e cinque le Server Action che scrivono sono scritte come un'unica pipeline Effect, non come funzioni `async` con controlli sparsi: prima validano l'input, poi chiamano lo use case, e ogni possibile fallimento lungo la strada viene ricondotto alla stessa forma minima, un messaggio. A eseguire la pipeline e a tradurne l'esito in `{ error?: string }` ci pensa `runAction` (`src/app/lib/run-action.ts`): successo → nessun errore, fallimento previsto → il suo messaggio, guasto imprevisto → un errore generico, con il dettaglio loggato lato server. `registerAction` è l'unica che aggiunge un passo dopo: il suo stato deve distinguere anche "non ancora inviato" da "riuscito" (per `RegisterForm.tsx`, che scatta un redirect solo quando `success` diventa vero), quindi trasforma il risultato di `runAction` in `{ error?: string; success: boolean }` invece di ritornarlo com'è.
+Tutte e cinque le Server Action che scrivono sono scritte come un'unica pipeline Effect, non come funzioni `async` con controlli sparsi: prima validano l'input, poi chiamano lo use case, e ogni possibile fallimento lungo la strada viene ricondotto alla stessa forma minima, un messaggio. A eseguire la pipeline e a tradurne l'esito in `{ error?: string }` ci pensa `runAction` (`src/app/lib/run-action.ts`): successo → nessun errore, fallimento previsto → il suo messaggio, guasto imprevisto → un errore generico, con il dettaglio loggato lato server. `registerAction` è l'unica che aggiunge un passo dopo: il suo stato deve distinguere anche "non ancora inviato" da "riuscito" (per `RegisterForm.tsx`, che scatta un redirect solo quando `success` diventa vero), quindi trasforma il risultato di `runAction` in `{ error?: string; success: boolean }` invece di ritornarlo com'è.
 
-  **Perché**: prima della conversione, tre di queste action non avvolgevano la chiamata allo use case in `Effect.either`: un fallimento tipizzato (es. `TravelerNotFoundError`, profilo sparito dal repository) mandava la promise in reject invece di tornare `{ error }` — un bug, non solo un disallineamento di stile rispetto alle due route GET già scritte con Effect.
+**Perché**: prima della conversione, tre di queste action non avvolgevano la chiamata allo use case in `Effect.either`: un fallimento tipizzato (es. `TravelerNotFoundError`, profilo sparito dal repository) mandava la promise in reject invece di tornare `{ error }` — un bug, non solo un disallineamento di stile rispetto alle due route GET già scritte con Effect.
 
-  **`runAction` condiviso, a differenza delle route**: le route traducono l'esito in status HTTP diversi per tag, quindi non hanno nulla in comune da estrarre. Le 5 action condividono invece lo stesso contratto `{ error?: string }` (voce sopra): l'helper centralizza quella traduzione una sola volta, e resta semplice perché ogni action riduce prima i propri errori a `{ message: string }`, invece di fargli conoscere le forme diverse (`.reason`, `.travelerId`) dei singoli errori di dominio.
+**`runAction` condiviso, a differenza delle route**: le route traducono l'esito in status HTTP diversi per tag, quindi non hanno nulla in comune da estrarre. Le 5 action condividono invece lo stesso contratto `{ error?: string }` (vedi [Server Action che scrivono](#server-action-che-scrivono-parametro-tipizzato-dallo-schema-validato-comunque-a-runtime-ritorno-promise-error-string-)): l'helper centralizza quella traduzione una sola volta, e resta semplice perché ogni action riduce prima i propri errori a `{ message: string }`, invece di fargli conoscere le forme diverse (`.reason`, `.travelerId`) dei singoli errori di dominio.
 
-- **Nessun `error.tsx`/`not-found.tsx`: si usano le pagine di default di Next**
+### Nessun `error.tsx`/`not-found.tsx`: si usano le pagine di default di Next
 
-  Gli errori previsti non arrivano mai a un error boundary: sessione mancante → `/register`, risultato assente → `undefined`, Server Action → `{ error }`. Restano solo i _defect_ (es. file JSON corrotto), per cui la pagina 500 di default basta: in produzione non espone dettagli e il `digest` permette di ritrovare l'errore nei log.
+Gli errori previsti non arrivano mai a un error boundary: sessione mancante → `/register`, risultato assente → `undefined`, Server Action → `{ error }`. Restano solo i _defect_ (es. file JSON corrotto), per cui la pagina 500 di default basta: in produzione non espone dettagli e il `digest` permette di ritrovare l'errore nei log.
 
-  **Perché**: una pagina personalizzata cambierebbe solo il testo di un caso che non deve succedere.
+**Perché**: una pagina personalizzata cambierebbe solo il testo di un caso che non deve succedere.
 
 ## UI e design system
 
-- **Mantine per i componenti interattivi, Tailwind per il layout: dipendenza npm, non codice vendorizzato**
+### Mantine per i componenti interattivi, Tailwind per il layout: dipendenza npm, non codice vendorizzato
 
-  Le primitive di interfaccia (bottoni, campi, dialog, select, notifiche, ecc.) vengono da `@mantine/core` e `@mantine/hooks`, importate come qualsiasi libreria (`import { Button } from "@mantine/core"`, `<Button variant="outline">`): API a prop documentata, nessuna implementazione interna da leggere o mantenere. Tailwind resta il motore di layout e spaziatura (`app/`, classi utility su griglie, flex, spacing), esattamente come oggi: le due cose convivono, non si sovrappongono sullo stesso compito.
+Le primitive di interfaccia (bottoni, campi, dialog, select, notifiche, ecc.) vengono da `@mantine/core` e `@mantine/hooks`, importate come qualsiasi libreria (`import { Button } from "@mantine/core"`, `<Button variant="outline">`): API a prop documentata, nessuna implementazione interna da leggere o mantenere. Tailwind resta il motore di layout e spaziatura (`app/`, classi utility su griglie, flex, spacing), esattamente come oggi: le due cose convivono, non si sovrappongono sullo stesso compito.
 
-  **Perché**: la priorità di "capire" di AGENTS.md vale per il prodotto e per il codice che scriviamo, non per l'implementazione di ogni bottone — questo è un progetto per imparare Effect, non frontend tooling. Possedere il codice dei componenti è un costo di comprensione e manutenzione che qui non porta nessun vantaggio reale, a differenza del dominio o degli use case, dove capire l'implementazione è proprio il punto.
+**Perché**: la priorità di "capire" di AGENTS.md vale per il prodotto e per il codice che scriviamo, non per l'implementazione di ogni bottone — questo è un progetto per imparare Effect, non frontend tooling. Possedere il codice dei componenti è un costo di comprensione e manutenzione che qui non porta nessun vantaggio reale, a differenza del dominio o degli use case, dove capire l'implementazione è proprio il punto.
 
 ## Route e sessione
 
-- **Route `/register`, `/my-world` e `/my-trips`: il proxy guarda il cookie, le pagine il profilo**
+### Route `/register`, `/my-world` e `/my-trips`: il proxy guarda il cookie, le pagine il profilo
 
-  "Il mio mondo" è `/my-world`, "I miei viaggi" è `/my-trips`, collegate da un'intestazione comune; non esiste una `page.tsx` di root. `src/proxy.ts` fa solo il controllo veloce, sulla presenza del cookie:
+"Il mio mondo" è `/my-world`, "I miei viaggi" è `/my-trips`, collegate da un'intestazione comune; non esiste una `page.tsx` di root. `src/proxy.ts` fa solo il controllo veloce, sulla presenza del cookie:
 
-  - senza cookie, qualunque pagina diversa da `/register` (compresa `/`) porta a `/register`;
-  - con il cookie, `/` porta a `/my-world`.
+- senza cookie, qualunque pagina diversa da `/register` (compresa `/`) porta a `/register`;
+- con il cookie, `/` porta a `/my-world`.
 
-  Il controllo vero, che il profilo esista, lo fanno le pagine: `getCurrentUser()` rimanda a `/register` se il profilo non c'è, e `/register` rimanda a `/my-world` se c'è.
+Il controllo vero, che il profilo esista, lo fanno le pagine: `getCurrentUser()` rimanda a `/register` se il profilo non c'è, e `/register` rimanda a `/my-world` se c'è.
 
-  Le route sotto `/api/` non vengono mai reindirizzate: sono chiuse per default e si aprono una per una in `PUBLIC_API_PATHS` (oggi solo `/api/cities`). Le altre, senza cookie, ricevono `401` in JSON.
+Le route sotto `/api/` non vengono mai reindirizzate: sono chiuse per default e si aprono una per una in `PUBLIC_API_PATHS` (oggi solo `/api/cities`). Le altre, senza cookie, ricevono `401` in JSON.
 
-  **Perché**: il proxy non legge il repository, così non paga una lettura del file a ogni richiesta e non dipende da `runtime`. Per le API un redirect non ha senso: una `fetch` finirebbe a leggere come JSON la pagina HTML di `/register`.
+**Perché**: il proxy non legge il repository, così non paga una lettura del file a ogni richiesta e non dipende da `runtime`. Per le API un redirect non ha senso: una `fetch` finirebbe a leggere come JSON la pagina HTML di `/register`.
 
-  **Scartato**:
-  - lasciar passare tutto ciò che inizia con `/api/`, perché una nuova API privata resterebbe pubblica finché qualcuno non si ricorda di proteggerla;
-  - una route `GET /logout` che cancella il cookie orfano: una `GET` che modifica lo stato, solo per un caso che la nuova registrazione risolve comunque sovrascrivendo il cookie.
+**Scartato**:
 
-- **Persistenza: repository salvati in file JSON locali, cookie con il solo id**
+- lasciar passare tutto ciò che inizia con `/api/`, perché una nuova API privata resterebbe pubblica finché qualcuno non si ricorda di proteggerla;
+- una route `GET /logout` che cancella il cookie orfano: una `GET` che modifica lo stato, solo per un caso che la nuova registrazione risolve comunque sovrascrivendo il cookie.
 
-  Traveler e viaggi sono salvati in file JSON sul server, in `.data/` (ignorata da git): `FileTravelerRepositoryLive` e `FileTripRepositoryLive` in `infrastructure/` implementano i port `TravelerRepository` e `TripRepository`, rileggendo il file a ogni operazione e riscrivendolo intero a ogni modifica (`writeJsonFile` scrive su un file temporaneo e poi lo rinomina, per non lasciare un JSON troncato se il processo si interrompe a metà scrittura); al primo avvio i traveler partono dai mock. Il cookie `tipmytrip_user` contiene solo l'id del traveler, dura un anno, è `httpOnly` e `sameSite: "lax"`, ma non `secure` (demo su http://localhost); `findCurrentUser()` lo legge e carica il traveler dal repository. Se il profilo non esiste più (es. `.data/` cancellata), pagine e Server Action rimandano a `/register` (il cookie orfano resta finché la nuova registrazione non lo sovrascrive), `/api/trip-matches` risponde `401`. Gli stati restano due: senza cookie si va alla registrazione, con il cookie si usa l'app.
+### Persistenza: repository salvati in file JSON locali, cookie con il solo id
 
-  **Perché**:
-  - i dati sopravvivono ai riavvii senza limiti di spazio;
-  - è la forma più vicina alla produzione: dati sul server dietro i port, passare a un database vuol dire semplicemente scrivere un altro adapter;
-  - rileggere il file invece di tenerne una copia in memoria evita che istanze diverse del modulo (Next può caricarlo più volte, per pagine, Server Action e route API) vedano dati diversi tra loro.
+Traveler e viaggi sono salvati in file JSON sul server, in `.data/` (ignorata da git): `FileTravelerRepositoryLive` e `FileTripRepositoryLive` in `infrastructure/` implementano i port `TravelerRepository` e `TripRepository`, rileggendo il file a ogni operazione e riscrivendolo intero a ogni modifica (`writeJsonFile` scrive su un file temporaneo e poi lo rinomina, per non lasciare un JSON troncato se il processo si interrompe a metà scrittura); al primo avvio i traveler partono dai mock. Il cookie `tipmytrip_user` contiene solo l'id del traveler, dura un anno, è `httpOnly` e `sameSite: "lax"`, ma non `secure` (demo su http://localhost); `findCurrentUser()` lo legge e carica il traveler dal repository. Se il profilo non esiste più (es. `.data/` cancellata), pagine e Server Action rimandano a `/register` (il cookie orfano resta finché la nuova registrazione non lo sovrascrive), `/api/trip-matches` risponde `401`. Gli stati restano due: senza cookie si va alla registrazione, con il cookie si usa l'app.
 
-  **Scartato**:
-  - profilo e viaggi interi nei cookie, reinseriti in memoria a ogni lettura: i cookie hanno un limite di circa 4KB, che avrebbe richiesto tetti arbitrari su viaggi e città conosciute;
-  - localStorage come copia di riserva: il server non lo vede, servirebbe uno stato intermedio "Ripristino della sessione…";
-  - solo memoria senza copia: si perderebbe tutto a ogni riavvio.
+**Perché**:
 
-  **Limiti accettati**:
-  - funziona solo con disco scrivibile e un solo processo: demo locale, non hosting serverless;
-  - nessun lock né migrazione, è un file non un database: il contenuto è validato con `Schema` in lettura, un file corrotto o di forma sbagliata è un _defect_ (`Effect.sync`), non un errore previsto;
-  - i mock si copiano nel file solo la prima volta: dopo averli cambiati va cancellata `.data/`;
-  - l'id nel cookie non è firmato: chi lo cambia a mano diventa un altro utente (coerente con l'assenza di autenticazione).
+- i dati sopravvivono ai riavvii senza limiti di spazio;
+- è la forma più vicina alla produzione: dati sul server dietro i port, passare a un database vuol dire semplicemente scrivere un altro adapter;
+- rileggere il file invece di tenerne una copia in memoria evita che istanze diverse del modulo (Next può caricarlo più volte, per pagine, Server Action e route API) vedano dati diversi tra loro.
 
-  **In produzione**: un database dietro gli stessi port, e un id di sessione firmato e verificato lato server, in un cookie `secure` (solo HTTPS).
+**Scartato**:
+
+- profilo e viaggi interi nei cookie, reinseriti in memoria a ogni lettura: i cookie hanno un limite di circa 4KB, che avrebbe richiesto tetti arbitrari su viaggi e città conosciute;
+- localStorage come copia di riserva: il server non lo vede, servirebbe uno stato intermedio "Ripristino della sessione…";
+- solo memoria senza copia: si perderebbe tutto a ogni riavvio.
+
+**Limiti accettati**:
+
+- funziona solo con disco scrivibile e un solo processo: demo locale, non hosting serverless;
+- nessun lock né migrazione, è un file, non un database: il contenuto è validato con `Schema` in lettura, un file corrotto o di forma sbagliata è un _defect_ (`Effect.sync`), non un errore previsto;
+- i mock si copiano nel file solo la prima volta: dopo averli cambiati va cancellata `.data/`;
+- l'id nel cookie non è firmato: chi lo cambia a mano diventa un altro utente (coerente con l'assenza di autenticazione).
+
+**In produzione**: un database dietro gli stessi port, e un id di sessione firmato e verificato lato server, in un cookie `secure` (solo HTTPS).
 
 ## Città: catalogo, ricerca, nomi
 
-- **Catalogo città: dataset in `infrastructure/`, ricerca pura in `domain/`, nessun port**
+### Catalogo città: dataset in `infrastructure/`, ricerca pura in `domain/`, nessun port
 
-  `infrastructure/city-catalog.ts` carica una volta `all-the-cities` (circa 135k città GeoNames) e lo converte in `City`. La ricerca è una funzione pura in `domain/city.ts`, `searchCities(cities, query)`, che riceve l'elenco come parametro e quindi si testa con pochi dati finti. Gli use case `searchCities` e `getCity` fanno da ponte verso la Presentation; `getCity` chiama direttamente `findCityById` del catalogo, senza passare dal dominio, perché risolvere un id è un lookup senza regole da incapsulare.
+`infrastructure/city-catalog.ts` carica una volta `all-the-cities` (circa 135k città GeoNames) e lo converte in `City`. La ricerca è una funzione pura in `domain/city.ts`, `searchCities(cities, query)`, che riceve l'elenco come parametro e quindi si testa con pochi dati finti. Gli use case `searchCities` e `getCity` fanno da ponte verso la Presentation; `getCity` chiama direttamente `findCityById` del catalogo, senza passare dal dominio, perché risolvere un id è un lookup senza regole da incapsulare.
 
-  **Perché**: niente port né Effect, perché il catalogo è un dataset unico, in sola lettura, senza implementazioni alternative né stato da isolare nei test (a differenza di `TravelerRepository`, le cui scritture sono osservate da altri use case). Non c'è nessuna dipendenza da iniettare e nessun errore previsto: una città non trovata è `undefined`.
+**Perché**: niente port né Effect, perché il catalogo è un dataset unico, in sola lettura, senza implementazioni alternative né stato da isolare nei test (a differenza di `TravelerRepository`, le cui scritture sono osservate da altri use case). Non c'è nessuna dipendenza da iniettare e nessun errore previsto: una città non trovata è `undefined`.
 
-- **Ricerca città dal client: Route Handler `GET /api/cities`, non Server Action**
+### Ricerca città dal client: Route Handler `GET /api/cities`, non Server Action
 
-  Il codice server può essere chiamato dal browser in due modi:
-  - una **Server Action** è una funzione scritta sul server che il client chiama come una funzione normale (`await setKnownCityAction(...)`); Next la trasforma da sé in una richiesta HTTP;
-  - un **Route Handler** è un endpoint HTTP classico (`src/app/api/cities/route.ts` risponde a `GET /api/cities?q=...`), che il client chiama con `fetch`.
+Il codice server può essere chiamato dal browser in due modi:
 
-  Le **mutazioni**, cioè le operazioni che modificano dati, sono Server Action. Le letture chiamate dal client mentre l'utente interagisce (la ricerca città e il matching del Trip Planner) sono Route Handler. Le pagine renderizzate sul server non passano da nessuno dei due: chiamano gli use case direttamente.
+- una **Server Action** è una funzione scritta sul server che il client chiama come una funzione normale (`await setKnownCityAction(...)`); Next la trasforma da sé in una richiesta HTTP;
+- un **Route Handler** è un endpoint HTTP classico (`src/app/api/cities/route.ts` risponde a `GET /api/cities?q=...`), che il client chiama con `fetch`.
 
-  **Perché**:
-  - le Server Action vengono eseguite una alla volta, in coda, non si possono annullare e sono sempre richieste `POST`, che non si mettono in cache. Per una ricerca mentre si digita è un problema: scrivendo "Ro" e poi "Roma", la ricerca di "Roma" aspetta che finisca quella di "Ro", ormai inutile, e ogni ricerca arriva al server anche se identica a una già fatta. Con una `GET` fatta con `fetch` ogni richiesta parte subito, un `AbortController` annulla quella precedente a ogni tasto, e le risposte si possono mettere in cache;
-  - per le mutazioni invece le Server Action sono comode: il tipo di ritorno arriva al client senza scrivere niente, includono una protezione contro le richieste partite da altri siti (CSRF), e nello stesso punto si può riscrivere il cookie;
-  - far chiamare a una pagina server il proprio Route Handler aggiungerebbe un giro HTTP inutile verso se stessa.
+Le **mutazioni**, cioè le operazioni che modificano dati, sono Server Action. Le letture chiamate dal client mentre l'utente interagisce (la ricerca città e il matching del Trip Planner) sono Route Handler. Le pagine renderizzate sul server non passano da nessuno dei due: chiamano gli use case direttamente.
 
-  Come si comporta la route:
+**Perché**:
 
-  - **Pubblica e in cache.** Restituisce città uguali per tutti, senza dati dell'utente, quindi non richiede il cookie (`PUBLIC_API_PATHS`) e le risposte si riusano per un'ora (`Cache-Control`): la seconda ricerca di "Roma" non arriva al server.
-  - **Risponde con un DTO**, cioè una forma dei dati pensata per il client e separata dal modello interno: `CitySearchResult` ha solo `id`, `name` e `country`, non l'intero `City`. Sta in `city-search-result.ts`, fuori dalla route, così il client lo importa senza trascinarsi dietro il catalogo.
-  - **Scritta con Effect, per scelta didattica**: query troppo lunga → `400`, eccezione imprevista → `500`. È lo schema che servirà con un database.
+- le Server Action vengono eseguite una alla volta, in coda, non si possono annullare e sono sempre richieste `POST`, che non si mettono in cache. Per una ricerca mentre si digita è un problema: scrivendo "Ro" e poi "Roma", la ricerca di "Roma" aspetta che finisca quella di "Ro", ormai inutile, e ogni ricerca arriva al server anche se identica a una già fatta. Con una `GET` fatta con `fetch` ogni richiesta parte subito, un `AbortController` annulla quella precedente a ogni tasto, e le risposte si possono mettere in cache;
+- per le mutazioni invece le Server Action sono comode: il tipo di ritorno arriva al client senza scrivere niente, includono una protezione contro le richieste partite da altri siti (CSRF), e nello stesso punto si può riscrivere il cookie;
+- far chiamare a una pagina server il proprio Route Handler aggiungerebbe un giro HTTP inutile verso se stessa.
 
-  **In produzione**:
+Come si comporta la route:
 
-  - **Database al posto del catalogo in memoria**: non per lo scan in sé (un `filter` su ~135k righe è già veloce, non è quello il collo di bottiglia). Il motivo principale è che oggi `CityId` è l'id grezzo di `all-the-cities`, e questo stesso id viene salvato in `knownCities` e nei viaggi: il servizio core dipende da una libreria di terze parti per l'identità dei propri dati di dominio, senza controllo su come quella libreria numera o rinumera le città tra una versione e l'altra. Un dataset proprio (importato una volta da GeoNames o simili, con id decisi da noi) rende la mappatura deterministica e stabile indipendentemente dagli aggiornamenti della libreria. In secondo piano risolverebbe anche i due limiti di `all-the-cities` di oggi: nomi in altre lingue solo per una trentina di città hardcoded in `CITY_NAME_OVERRIDES`, e nessun modo di correggere o arricchire i dati senza toccare il codice e rifare il deploy. Un database porterebbe anche ricerca asincrona e fallibile, quindi port `CityCatalog` ed Effect negli use case, con il guasto del database come errore (es. `503`).
-  - **Rate limiting** della piattaforma o con un contatore condiviso (es. Redis): uno in memoria vale per un solo processo e non riconosce l'IP in modo affidabile.
-  - **Una libreria di data fetching** lato client per richieste doppie, cache nel browser e nuovi tentativi.
-  - **Osservabilità**: log strutturati, metriche, tracing.
+- **Pubblica e in cache.** Restituisce città uguali per tutti, senza dati dell'utente, quindi non richiede il cookie (`PUBLIC_API_PATHS`) e le risposte si riusano per un'ora (`Cache-Control`): la seconda ricerca di "Roma" non arriva al server.
+- **Risponde con un DTO**, cioè una forma dei dati pensata per il client e separata dal modello interno: `CitySearchResult` ha solo `id`, `name` e `country`, non l'intero `City`. Sta in `city-search-result.ts`, fuori dalla route, così il client lo importa senza trascinarsi dietro il catalogo.
+- **Scritta con Effect, per scelta didattica**: query troppo lunga → `400`, eccezione imprevista → `500`. È lo schema che servirà con un database.
 
-- **Risultati mostrati come "Città, Paese", senza regione**
+**In produzione**:
 
-  La ricerca mostra "Springfield, Stati Uniti", non la regione o lo stato interno.
+- **Database al posto del catalogo in memoria**: non per lo scan in sé (un `filter` su ~135k righe è già veloce, non è quello il collo di bottiglia). Il motivo principale è che oggi `CityId` è l'id grezzo di `all-the-cities`, e questo stesso id viene salvato in `knownCities` e nei viaggi: il servizio core dipende da una libreria di terze parti per l'identità dei propri dati di dominio, senza controllo su come quella libreria numera o rinumera le città tra una versione e l'altra. Un dataset proprio (importato una volta da GeoNames o simili, con id decisi da noi) rende la mappatura deterministica e stabile indipendentemente dagli aggiornamenti della libreria. In secondo piano risolverebbe anche i due limiti di `all-the-cities` di oggi: nomi in altre lingue solo per una trentina di città hardcoded in `CITY_NAME_OVERRIDES`, e nessun modo di correggere o arricchire i dati senza toccare il codice e rifare il deploy. Un database porterebbe anche ricerca asincrona e fallibile, quindi port `CityCatalog` ed Effect negli use case, con il guasto del database come errore (es. `503`).
+- **Rate limiting** della piattaforma o con un contatore condiviso (es. Redis): uno in memoria vale per un solo processo e non riconosce l'IP in modo affidabile.
+- **Una libreria di data fetching** lato client per richieste doppie, cache nel browser e nuovi tentativi.
+- **Osservabilità**: log strutturati, metriche, tracing.
 
-  **Perché**: la regione servirebbe solo a distinguere omonimi nello stesso paese, un caso raro che appesantirebbe ogni riga.
+### Risultati mostrati come "Città, Paese", senza regione
 
-  **Limiti accettati**: due omonimi nello stesso paese si distinguono solo dopo la selezione, sulla mappa.
+La ricerca mostra "Springfield, Stati Uniti", non la regione o lo stato interno.
 
-- **Nomi città anglicizzati: tabella di override per le principali**
+**Perché**: la regione servirebbe solo a distinguere omonimi nello stesso paese, un caso raro che appesantirebbe ogni riga.
 
-  GeoNames usa il nome inglese per molte città note ("Rome", "Milan"). `CITY_NAME_OVERRIDES` in `infrastructure/city-catalog.ts` mette il nome italiano al posto di quello inglese per una trentina di città, usando l'id GeoNames come chiave.
+**Limiti accettati**: due omonimi nello stesso paese si distinguono solo dopo la selezione, sulla mappa.
 
-  **Perché**: lo stesso nome serve per mostrare e per cercare, quindi senza la tabella cercare "Milano" non troverebbe niente. Una soluzione completa sarebbe sproporzionata per un prototipo.
+### Nomi città anglicizzati: tabella di override per le principali
 
-  **In produzione**: la tabella verrebbe generata da uno script, dai nomi per lingua di GeoNames (`alternateNames`) o da Wikidata, e la ricerca indicizzerebbe più varianti di ogni nome (locale, italiano, altri).
+GeoNames usa il nome inglese per molte città note ("Rome", "Milan"). `CITY_NAME_OVERRIDES` in `infrastructure/city-catalog.ts` mette il nome italiano al posto di quello inglese per una trentina di città, usando l'id GeoNames come chiave.
 
-  **Scartato**: un servizio di traduzione in tempo reale, anche in produzione, perché aggiunge dipendenza di rete e costi per un dato che non cambia.
+**Perché**: lo stesso nome serve per mostrare e per cercare, quindi senza la tabella cercare "Milano" non troverebbe niente. Una soluzione completa sarebbe sproporzionata per un prototipo.
+
+**In produzione**: la tabella verrebbe generata da uno script, dai nomi per lingua di GeoNames (`alternateNames`) o da Wikidata, e la ricerca indicizzerebbe più varianti di ogni nome (locale, italiano, altri).
+
+**Scartato**: un servizio di traduzione in tempo reale, anche in produzione, perché aggiunge dipendenza di rete e costi per un dato che non cambia.
 
 ## Viaggi
 
-- **`GET /api/trip-matches`: route privata, mai in cache, scritta interamente con Effect**
+### `GET /api/trip-matches`: route privata, mai in cache, scritta interamente con Effect
 
-  Richiede il cookie di sessione (non è in `PUBLIC_API_PATHS`, risponde `401` senza) e risponde con `Cache-Control: private, no-store`, perché i risultati dipendono da chi chiede. Il parametro `cityIds` è una lista di id canonici separati da virgole: gli spazi attorno agli id vengono ignorati, mentre una città inesistente o un input duplicato restituiscono `400`. La sessione viene controllata solo dopo questa validazione. Come `/api/cities`, tutta la pipeline è un unico `Effect.gen` (validazione con `findTripProblem`, lettura utente, `findExpertsForTrip`), eseguito con `runtime.runPromiseExit` e tradotto in risposta con `Exit.match`. `findCurrentUser` resta una funzione `async` normale (la usano anche pagine e Server Action): entra nella pipeline con `Effect.promise` (vedi `docs/effect/03-running-effects.md`). Un organizzatore sparito dal repository (`TravelerNotFoundError`) è trattato come sessione scaduta, unificato con `401` via `Effect.catchTag`.
+Richiede il cookie di sessione (non è in `PUBLIC_API_PATHS`, risponde `401` senza) e risponde con `Cache-Control: private, no-store`, perché i risultati dipendono da chi chiede. Il parametro `cityIds` è una lista di id canonici separati da virgole: gli spazi attorno agli id vengono ignorati, mentre una città inesistente o un input duplicato restituiscono `400`. La sessione viene controllata solo dopo questa validazione. Come `/api/cities`, tutta la pipeline è un unico `Effect.gen` (validazione con `findTripProblem`, lettura utente, `findExpertsForTrip`), eseguito con `runtime.runPromiseExit` e tradotto in risposta con `Exit.match`. `findCurrentUser` resta una funzione `async` normale (la usano anche pagine e Server Action): entra nella pipeline con `Effect.promise` (vedi `docs/effect/03-running-effects.md`). Un organizzatore sparito dal repository (`TravelerNotFoundError`) è trattato come sessione scaduta, unificato con `401` via `Effect.catchTag`.
 
-  **Perché**: coerente con l'eccezione didattica per `/api/cities` — anche qui la route intera è scritta con Effect per esercitare il pattern, con un caso in più: comporre una `Promise` esterna alla pipeline.
+**Perché**: coerente con l'eccezione didattica per `/api/cities` — anche qui la route intera è scritta con Effect per esercitare il pattern, con un caso in più: comporre una `Promise` esterna alla pipeline.
 
-- **`Trip.experts`: snapshot dei dati rilevanti, non una relazione viva ai traveler**
+### `Trip.experts`: snapshot dei dati rilevanti, non una relazione viva ai traveler
 
-  Quando si salva un viaggio, `createTrip` rilegge dal repository i traveler selezionati e salva in `Trip.experts` l'id, il nome, le città del viaggio che conoscono con il livello e le lingue condivise. Questi dati spiegano il match e restano congelati. Il contatto è invece caricato dal profilo corrente quando si elencano i viaggi: può cambiare senza riscrivere lo snapshot; se il profilo non esiste più, il viaggio resta visibile senza link di contatto. Il client invia solo gli id selezionati; al salvataggio il server ricalcola i match con i profili aggiornati. Se un esperto selezionato non conosce più nessuna città del viaggio o non condivide più lingue con l'organizzatore, il viaggio non viene salvato e la finestra mostra un messaggio d'errore.
+Quando si salva un viaggio, `createTrip` rilegge dal repository i traveler selezionati e salva in `Trip.experts` l'id, il nome, le città del viaggio che conoscono con il livello e le lingue condivise. Questi dati spiegano il match e restano congelati. Il contatto è invece caricato dal profilo corrente quando si elencano i viaggi: può cambiare senza riscrivere lo snapshot; se il profilo non esiste più, il viaggio resta visibile senza link di contatto. Il client invia solo gli id selezionati; al salvataggio il server ricalcola i match con i profili aggiornati. Se un esperto selezionato non conosce più nessuna città del viaggio o non condivide più lingue con l'organizzatore, il viaggio non viene salvato e la finestra mostra un messaggio d'errore.
 
-  **Perché**: il viaggio rappresenta la scelta fatta in quel momento, non una vista dinamica dei profili. Un array di snapshot è sufficiente per la selezione multipla e mantiene la schermata stabile senza introdurre una relazione separata.
+**Perché**: il viaggio rappresenta la scelta fatta in quel momento, non una vista dinamica dei profili. Un array di snapshot è sufficiente per la selezione multipla e mantiene la schermata stabile senza introdurre una relazione separata.
 
-- **`TripRepository.delete` è un no-op silenzioso se il viaggio non esiste o non è dell'organizzatore**
+### `TripRepository.delete` è un no-op silenzioso se il viaggio non esiste o non è dell'organizzatore
 
-  `delete(tripId, organizerId)` filtra via i viaggi che combaciano su entrambi gli id; se nessuno combacia, il file riscritto è identico a prima. Nessun errore tipizzato, nessuna distinzione tra "non trovato" e "non tuo".
+`delete(tripId, organizerId)` filtra via i viaggi che combaciano su entrambi gli id; se nessuno combacia, il file riscritto è identico a prima. Nessun errore tipizzato, nessuna distinzione tra "non trovato" e "non tuo".
 
-  **Perché**: coerente con `save` come upsert (vedi "Dominio e matching"); ciò che interessa a chi chiama è "questo viaggio non è più nella tua lista", vero a prescindere dal motivo.
+**Perché**: coerente con `save` come upsert (vedi [`TravelerRepository.save` è un upsert](#travelerrepositorysave-è-un-upsert)); ciò che interessa a chi chiama è "questo viaggio non è più nella tua lista", vero a prescindere dal motivo.
 
 ## Registrazione e validazione
 
-- **Email: solo controllo sintattico, con `Schema` di Effect**
+### Email: solo controllo sintattico, con `Schema` di Effect
 
-  `registerTraveler` verifica che l'email abbia un formato plausibile (`Schema.pattern`), non che esista.
+`registerTraveler` verifica che l'email abbia un formato plausibile (`Schema.pattern`), non che esista.
 
-  **Perché**: basta a scartare gli errori di battitura, e nell'MVP non c'è nessuna integrazione reale con l'email. `Schema` fa già parte di `effect`, quindi niente librerie in più.
+**Perché**: basta a scartare gli errori di battitura, e nell'MVP non c'è nessuna integrazione reale con l'email. `Schema` fa già parte di `effect`, quindi niente librerie in più.
 
-- **Numero WhatsApp: validazione reale per paese con `libphonenumber-js`**
+### Numero WhatsApp: validazione reale per paese con `libphonenumber-js`
 
-  Il campo ha il selettore del prefisso (`react-phone-number-input`), e `parseWhatsAppNumber` in `domain/contact-format.ts` verifica che il numero sia valido per il suo paese e lo salva in formato internazionale (`"+393331234567"`).
+Il campo ha il selettore del prefisso (`react-phone-number-input`), e `parseWhatsAppNumber` in `domain/contact-format.ts` verifica che il numero sia valido per il suo paese e lo salva in formato internazionale (`"+393331234567"`).
 
-  **Perché**: lunghezze e prefissi cambiano da paese a paese, e reimplementarli sarebbe fragile. Queste librerie sono lo standard in JavaScript.
+**Perché**: lunghezze e prefissi cambiano da paese a paese, e reimplementarli sarebbe fragile. Queste librerie sono lo standard in JavaScript.
 
-- **Form di registrazione: submit gestito a mano, non `<form action>`**
+### Form di registrazione: submit gestito a mano, non `<form action>`
 
-  `RegisterForm` gestisce l'invio da sé (`onSubmit`) e chiama `registerAction`, invece di passarla all'attributo `action` del form.
+`RegisterForm` gestisce l'invio da sé (`onSubmit`) e chiama `registerAction`, invece di passarla all'attributo `action` del form.
 
-  **Perché**: con `<form action>` React svuota i campi dopo ogni invio, anche in caso di errore: un'email non valida farebbe perdere tutto quello che l'utente aveva scritto.
+**Perché**: con `<form action>` React svuota i campi dopo ogni invio, anche in caso di errore: un'email non valida farebbe perdere tutto quello che l'utente aveva scritto.
 
 ## Build e test
 
-- **Test in `__tests__/` per cartella**
+### Test in `__tests__/` per cartella
 
-  I test stanno in una sottocartella `__tests__/` dentro ogni cartella di sorgenti (es. `src/domain/__tests__/matching.test.ts`).
+I test stanno in una sottocartella `__tests__/` dentro ogni cartella di sorgenti (es. `src/domain/__tests__/matching.test.ts`).
 
-  **Perché**: i test non si mescolano ai sorgenti nell'elenco dei file, non c'è un secondo albero da tenere allineato a `src/`, ed è una convenzione che Jest riconosce senza configurazione.
+**Perché**: i test non si mescolano ai sorgenti nell'elenco dei file, non c'è un secondo albero da tenere allineato a `src/`, ed è una convenzione che Jest riconosce senza configurazione.
 
-- **Un file di test per file sorgente, salvo quando condividerebbero lo stesso finto**
+### Un file di test per file sorgente, salvo quando condividerebbero lo stesso finto
 
-  Di norma un file di test per file sorgente (`file-traveler-repository.ts` → `file-traveler-repository.test.ts`). Si accorpano più use case in un solo file solo se userebbero davvero lo stesso test double, con gli stessi dati (`create-trip.ts`/`list-trips.ts`/`delete-trip.ts` → `trips.test.ts`), non solo perché sono nella stessa area (`find-experts-for-trip.ts` resta a parte: il suo finto ha dati pensati per il matching). Gli use case di pura delega, senza logica propria (`get-city.ts`, `search-cities.ts`, `get-traveler.ts`), non hanno test.
+Di norma un file di test per file sorgente (`file-traveler-repository.ts` → `file-traveler-repository.test.ts`). Si accorpano più use case in un solo file solo se userebbero davvero lo stesso test double, con gli stessi dati (`create-trip.ts`/`list-trips.ts`/`delete-trip.ts` → `trips.test.ts`), non solo perché sono nella stessa area (`find-experts-for-trip.ts` resta a parte: il suo finto ha dati pensati per il matching). Gli use case di pura delega, senza logica propria (`get-city.ts`, `search-cities.ts`, `get-traveler.ts`), non hanno test.
 
-  **Perché**: separare sempre duplicherebbe lo stesso finto in più file; accorpare sempre mescolerebbe nello stesso file use case che non c'entrano tra loro, rendendo poco chiaro cosa copre il file e cosa si è rotto se un test fallisce. Si accorpa solo quando i due use case sono davvero la stessa unità di comportamento — e "stesso finto, stessi dati" è il modo per riconoscerlo.
+**Perché**: separare sempre duplicherebbe lo stesso finto in più file; accorpare sempre mescolerebbe nello stesso file use case che non c'entrano tra loro, rendendo poco chiaro cosa copre il file e cosa si è rotto se un test fallisce. Si accorpa solo quando i due use case sono davvero la stessa unità di comportamento — e "stesso finto, stessi dati" è il modo per riconoscerlo.

@@ -90,7 +90,7 @@ Qui `Effect.succeed(n * 2)` è comunque un `Effect`, quindi il passaggio success
 
 Ogni riga prende l'`Effect` prodotto dalla riga sopra e lo trasforma in uno nuovo — non è una sequenza di variabili come in `Effect.gen`, è una catena: il valore passa da uno step al successivo senza mai comparire come variabile intermedia.
 
-Nel progetto usiamo principalmente `Effect.gen` per i use case (si legge come codice imperativo normale, più leggibile quando ci sono più passaggi in sequenza), e `pipe` solo dove la composizione è breve e lineare — non c'è una regola rigida, ma se un `Effect.gen` con 1-2 `yield*` diventasse più chiaro come `pipe`, va bene anche quello.
+Nel progetto usiamo principalmente `Effect.gen` per gli use case (si legge come codice imperativo normale, più leggibile quando ci sono più passaggi in sequenza), e `pipe` solo dove la composizione è breve e lineare — non c'è una regola rigida, ma se un `Effect.gen` con 1-2 `yield*` diventasse più chiaro come `pipe`, va bene anche quello.
 
 ## Come leggere il resto della documentazione
 
