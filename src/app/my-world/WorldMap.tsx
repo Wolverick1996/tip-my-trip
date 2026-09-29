@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css"
 import { useEffect } from "react"
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet"
 import { EXPERTISE_LEVELS, expertiseLevelLabel, type ExpertiseLevel } from "@/domain/expertise-level"
-import { expertiseLevelMapMarkerColor } from "@/app/expertise-level-colors"
+import { expertiseLevelMapMarkerColor } from "@/app/lib/expertise-level-colors"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 
 const LEVEL_BAR_COUNT: Record<ExpertiseLevel, number> = {

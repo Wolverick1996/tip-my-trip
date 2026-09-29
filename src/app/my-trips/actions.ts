@@ -1,12 +1,12 @@
 "use server"
 
-import { Effect, Either, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { getCurrentUser } from "@/current-user"
 import type { TripId } from "@/domain/trip"
-import { runtime } from "@/runtime"
 import { createTrip } from "@/use-cases/create-trip"
 import { deleteTrip } from "@/use-cases/delete-trip"
 import { getCity } from "@/use-cases/get-city"
+import { ActionFailure, runAction } from "@/app/lib/run-action"
 
 const CreateTripInput = Schema.Struct({
   title: Schema.String,
@@ -15,36 +15,33 @@ const CreateTripInput = Schema.Struct({
 })
 
 export async function createTripAction(input: typeof CreateTripInput.Type): Promise<{ error?: string }> {
-  const decoded = Schema.decodeUnknownEither(CreateTripInput)(input)
-  if (Either.isLeft(decoded)) {
-    return { error: "Dati del viaggio non validi." }
-  }
-  const { title, cityIds, expertIds } = decoded.right
-  if (cityIds.some((cityId) => !getCity(cityId))) {
-    return { error: "Una delle città del viaggio non esiste." }
-  }
-
   const organizer = await getCurrentUser()
-  const result = await runtime.runPromise(
-    Effect.either(
-      createTrip({
+  return runAction(
+    Effect.gen(function* () {
+      const { title, cityIds, expertIds } = yield* Schema.decodeUnknown(CreateTripInput)(input).pipe(
+        Effect.mapError(() => new ActionFailure({ message: "Dati del viaggio non validi." })),
+      )
+      if (cityIds.some((cityId) => !getCity(cityId))) {
+        return yield* Effect.fail(new ActionFailure({ message: "Una delle città del viaggio non esiste." }))
+      }
+      yield* createTrip({
         organizerId: organizer.id,
         title,
         cityIds: [...cityIds],
         expertIds: [...expertIds],
-      }),
-    ),
+      }).pipe(Effect.mapError((error) => new ActionFailure({ message: error.reason })))
+    }),
   )
-  return Either.isLeft(result) ? { error: result.left.reason } : {}
 }
 
 export async function deleteTripAction(tripId: TripId): Promise<{ error?: string }> {
-  const decoded = Schema.decodeUnknownEither(Schema.String)(tripId)
-  if (Either.isLeft(decoded)) {
-    return { error: "Dati non validi." }
-  }
-
   const organizer = await getCurrentUser()
-  await runtime.runPromise(deleteTrip(decoded.right, organizer.id))
-  return {}
+  return runAction(
+    Effect.gen(function* () {
+      const decoded = yield* Schema.decodeUnknown(Schema.String)(tripId).pipe(
+        Effect.mapError(() => new ActionFailure({ message: "Dati non validi." })),
+      )
+      yield* deleteTrip(decoded, organizer.id)
+    }),
+  )
 }

@@ -20,7 +20,7 @@ import { useState } from "react"
 import type { CitySearchResult } from "@/app/api/cities/city-search-result"
 import { useCitySearch } from "@/app/hooks/use-city-search"
 import { EXPERTISE_LEVELS, expertiseLevelLabel, type ExpertiseLevel } from "@/domain/expertise-level"
-import { expertiseLevelBadgeColor, expertiseLevelChipOutlineColor } from "@/app/expertise-level-colors"
+import { expertiseLevelBadgeColor, expertiseLevelChipOutlineColor } from "@/app/lib/expertise-level-colors"
 import { setKnownCityAction } from "./actions"
 import type { ResolvedKnownCity } from "./resolved-known-city"
 

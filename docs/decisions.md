@@ -64,6 +64,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
     app/              # routing Next.js e codice Presentation
       components/     # componenti condivisi tra più route
       hooks/          # hook React condivisi tra più route (es. useCitySearch)
+      lib/            # funzioni condivise tra più route, non componenti né hook (es. runAction)
     domain/           # tipi, regole pure, port, errori tipizzati
     use-cases/        # un file per use case
     infrastructure/   # adapter dei port (su file JSON), catalogo città, dati mock
@@ -76,7 +77,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
   - I port stanno in `domain/`: è il dominio a dichiarare di cosa ha bisogno, l'infrastruttura lo implementa. Così `domain/` non dipende da React, Next.js né dalle implementazioni concrete, e si testa in isolamento.
   - La Presentation (`app/`) non importa mai da `infrastructure/`: passa sempre da uno use case, anche quando è un semplice inoltro (es. `getCity`), così cambiare un adapter non tocca le pagine.
   - `infrastructure/` è piatta: sottocartelle servirebbero solo con più implementazioni dello stesso port (es. su file vs su database).
-  - Un componente applicativo sta in `src/app/components/`, un hook in `src/app/hooks/`, solo se lo importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no. Le primitive di interfaccia non rientrano in questa regola: vengono da `@mantine/core`, non sono file del progetto (vedi "UI e design system").
+  - Un componente applicativo sta in `src/app/components/`, un hook in `src/app/hooks/`, una funzione condivisa che non è né l'uno né l'altro (es. `runAction`, `expertiseLevelBadgeColor`) in `src/app/lib/`, solo se la importano 2 o più route; altrimenti sta accanto all'unica pagina che lo usa, in `src/app/<route>/`, insieme a Server Action e tipi di quella route. Si sposta quando compare davvero il secondo consumatore: spostare un file costa poco, indovinare in anticipo la riusabilità no. Le primitive di interfaccia non rientrano in questa regola: vengono da `@mantine/core`, non sono file del progetto (vedi "UI e design system").
   - I dati di riferimento senza logica né implementazioni alternative (lingue selezionabili in `domain/language.ts`, livelli in `domain/expertise-level.ts`, catalogo città in `infrastructure/city-catalog.ts`) sono esportati direttamente, senza port. Lingue e livelli stanno in `domain/` perché sono scelte del prodotto; il catalogo città sta in `infrastructure/` perché è un dataset esterno letto da disco (con `fs`, solo lato server).
   - Il nome del cookie sta da solo in `user-cookie.ts` perché lo importa anche `proxy.ts`: prenderlo da `current-user.ts` trascinerebbe nel proxy anche `runtime` e `next/headers`.
   - I nomi leggibili dei valori di dominio stanno accanto al tipo (`getLanguageName`, `expertiseLevelLabel`, `EXPERTISE_LEVELS`): "Base", "Expert", "Local" sono vocabolario del prodotto, non di una schermata.
@@ -97,13 +98,21 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
 - **Server Action che scrivono: parametro tipizzato dallo `Schema`, validato comunque a runtime, ritorno `Promise<{ error?: string }>`**
 
-  Ogni Server Action con un parametro oggetto (non `registerAction`, che riceve una `FormData`) lo tipizza derivandolo dallo `Schema.Struct` che lo descrive (`typeof CreateTripInput.Type`), o dall'alias di dominio per un semplice `Schema.String` (`CityId`, `TripId`). Il corpo valida comunque con `Schema.decodeUnknownEither` e ritorna `{ error?: string }` invece di lanciare: `{}` per il successo, `{ error }` per input malformato o regola violata. Il client controlla `result.error`, senza `try/catch`.
+  Ogni Server Action con un parametro oggetto (non `registerAction`, che riceve una `FormData`) lo tipizza derivandolo dallo `Schema.Struct` che lo descrive (`typeof CreateTripInput.Type`), o dall'alias di dominio per un semplice `Schema.String` (`CityId`, `TripId`). Il corpo valida comunque con `Schema.decodeUnknown` dentro un `Effect.gen` e ritorna `{ error?: string }` invece di lanciare: `{}` per il successo, `{ error }` per input malformato o regola violata. Il client controlla `result.error`, senza `try/catch`.
 
   **Perché**: una Server Action è un endpoint `POST` raggiungibile anche da fuori la UI che la invoca, quindi il tipo del parametro protegge solo le chiamate scritte dentro il codebase, non chi chiama da fuori — la validazione a runtime resta comunque obbligatoria. Vale anche per `FormData`: i suoi valori sono garantiti stringa o `File`, ma non garantiti validi, per questo il contenuto resta validato dentro `registerTraveler`.
 
   **Scartato**: parametro `unknown`. Non aggiunge protezione, che viene dalla validazione non dal tipo, ma fa perdere a `tsc` il controllo sulle chiamate interne. Un tipo derivato dallo stesso `Schema.Struct` tiene un'unica fonte di verità senza indebolire nulla.
 
   **Limiti accettati**: la validazione scarta forma e valori non ammessi, non tutte le regole di business, che restano nello use case o nel dominio (es. `InvalidTripError`).
+
+- **Server Action scritte interamente con Effect, helper condiviso `runAction` per tradurre l'esito**
+
+  Tutte e cinque le Server Action che scrivono sono scritte come un'unica pipeline Effect, non come funzioni `async` con controlli sparsi: prima validano l'input, poi chiamano lo use case, e ogni possibile fallimento lungo la strada viene ricondotto alla stessa forma minima, un messaggio. A eseguire la pipeline e a tradurne l'esito in `{ error?: string }` ci pensa `runAction` (`src/app/lib/run-action.ts`): successo → nessun errore, fallimento previsto → il suo messaggio, guasto imprevisto → un errore generico, con il dettaglio loggato lato server. `registerAction` è l'unica che aggiunge un passo dopo: il suo stato deve distinguere anche "non ancora inviato" da "riuscito" (per `RegisterForm.tsx`, che scatta un redirect solo quando `success` diventa vero), quindi trasforma il risultato di `runAction` in `{ error?: string; success: boolean }` invece di ritornarlo com'è.
+
+  **Perché**: prima della conversione, tre di queste action non avvolgevano la chiamata allo use case in `Effect.either`: un fallimento tipizzato (es. `TravelerNotFoundError`, profilo sparito dal repository) mandava la promise in reject invece di tornare `{ error }` — un bug, non solo un disallineamento di stile rispetto alle due route GET già scritte con Effect.
+
+  **`runAction` condiviso, a differenza delle route**: le route traducono l'esito in status HTTP diversi per tag, quindi non hanno nulla in comune da estrarre. Le 4 action condividono invece lo stesso contratto `{ error?: string }` (voce sopra): l'helper centralizza quella traduzione una sola volta, e resta semplice perché ogni action riduce prima i propri errori a `{ message: string }`, invece di fargli conoscere le forme diverse (`.reason`, `.travelerId`) dei singoli errori di dominio.
 
 - **Nessun `error.tsx`/`not-found.tsx`: si usano le pagine di default di Next**
 

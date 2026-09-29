@@ -52,36 +52,50 @@ Un errore tipizzato si usa solo per situazioni davvero eccezionali (un id che no
 
 ## Gestire un errore tipizzato in produzione: `Either` e `Effect.either`
 
-Stesso principio dello stato vuoto già visto sopra: una registrazione con dati non validi è un ramo diverso della UI, non un evento eccezionale da segnalare a qualcun altro. Serve quindi un modo per controllare il risultato con un `if` normale, invece di gestire un canale d'errore.
+Stesso principio dello stato vuoto già visto sopra: a volte un errore previsto va trattato come un valore assente per chi chiama, non rilanciato. `findCurrentUser` lo fa con la sessione: se il cookie punta a un profilo cancellato, `getTraveler` fallisce con `TravelerNotFoundError`, ma la funzione deve solo restituire `undefined`, come se la sessione non ci fosse — non propagare quell'errore. Lo strumento che rende possibile trattare un fallimento come un valore normale su cui fare un `if`, invece che come qualcosa da rilanciare o da gestire nel canale d'errore di Effect, è `Either`.
 
 **`Either<A, E>`** è un tipo dato che rappresenta uno dei due possibili esiti di qualcosa: un successo (`Right(valore)`, con un `A`) o un fallimento (`Left(errore)`, con un `E`) — mai entrambi, sempre uno dei due. Stesso principio di `Option` (che rappresenta "un valore o niente"), ma qui il "niente" porta con sé un'informazione — l'errore — invece di essere vuoto.
 
 **`Effect.either(effect)`** prende un `Effect<A, E, R>` che può fallire e lo trasforma in un `Effect<Either<A, E>, never, R>`: non fallisce **mai** (il canale errore diventa `never`) — l'eventuale fallimento originale diventa un valore `Left(errore)` normale, non qualcosa che va gestito nel canale d'errore. Dopo averlo eseguito, hai in mano un oggetto JS qualsiasi, non più "un Effect":
 
 ```ts
-const result = await runtime.runPromise(Effect.either(registerTraveler(input)))
-// result è { _tag: "Right", right: Traveler } oppure { _tag: "Left", left: InvalidRegistrationError }
+const result = await runtime.runPromise(Effect.either(getTraveler(travelerId)))
+// result è { _tag: "Right", right: Traveler } oppure { _tag: "Left", left: TravelerNotFoundError }
 
-if (Either.isLeft(result)) {
-  return { error: result.left.reason, success: false }
-}
-
-await setCurrentUser(result.right)
+return Either.isRight(result) ? result.right : undefined
 ```
 
 **Perché non un semplice `try/catch`?** In TypeScript puro:
 
 ```ts
 try {
-  const traveler = await registerTravelerPromiseVersion(input)
+  const traveler = await getTravelerPromiseVersion(travelerId)
 } catch (err) {
-  // err qui è "unknown" — richiede un instanceof/cast a mano prima di poterlo usare
+  // err qui è "unknown": cattura anche un difetto imprevisto, non solo il "non trovato" che ci interessa
 }
 ```
 
-`try/catch` farebbe lo stesso lavoro per questo singolo caso, ma con una differenza concreta: `catch` in TypeScript tipizza sempre l'errore catturato come `unknown` (qualsiasi cosa può essere lanciata in JS, il compilatore non può saperlo), quindi va ristretto a mano. Con `Either`, `result.left` resta tipizzato esattamente `InvalidRegistrationError`, con il suo campo `reason` — l'informazione arriva dal canale d'errore di Effect, non da un `throw` generico, e attraversa il confine fino a React senza perdere precisione.
+`try/catch` farebbe lo stesso lavoro per questo singolo caso, ma con una differenza concreta: `catch` cattura _qualsiasi_ eccezione, quindi un `try/catch` così ampio nasconderebbe un difetto reale (es. un bug, un file corrotto) dietro lo stesso `undefined` di "profilo non trovato". Con `Either`, `result.left` resta tipizzato esattamente `TravelerNotFoundError`: solo quel fallimento previsto diventa `undefined`, un difetto continua a propagare invece di sparire silenziosamente.
 
-Se in futuro servisse davvero distinguere _quale_ errore è successo (non solo se è fallito), lo strumento è `Effect.catchTag(effect, "NomeTag", (errore) => altroEffect)` — intercetta solo quel tag, lascia propagare gli altri.
+Qui c'è un solo tag possibile (`TravelerNotFoundError`), quindi non serve distinguere niente. Se invece una pipeline potesse fallire con tag diversi e servisse reagire solo a uno specifico, lasciando propagare gli altri, lo strumento è `Effect.catchTag(effect, "NomeTag", (errore) => altroEffect)`.
+
+## Normalizzare più errori diversi in uno solo: `Effect.mapError`
+
+Usato per: le Server Action (`src/app/my-world/actions.ts`, `src/app/my-trips/actions.ts`), dove una singola pipeline può fallire per motivi diversi — un `ParseError` di `Schema.decodeUnknown`, un `InvalidTripError` da `createTrip` — ma chi esegue la pipeline (`runAction`, in `src/app/lib/run-action.ts`) si aspetta sempre la stessa forma di errore, senza dover conoscere ogni variante.
+
+`Effect.mapError(effect, (errore) => nuovoErrore)` trasforma il canale errore di un `Effect<A, E, R>` in un `Effect<A, E2, R>`, applicando la funzione solo se l'Effect fallisce (se ha successo non fa nulla). A differenza di `Effect.catchTag`, che intercetta _un tag specifico_ e lascia propagare gli altri, `mapError` trasforma _qualunque_ fallimento arrivi in quel punto — utile quando, come qui, non interessa distinguere i tag ma solo portare tutto a una forma comune:
+
+```ts
+const { cityId, level } = yield* Schema.decodeUnknown(SetKnownCityInput)(input).pipe(
+  Effect.mapError(() => new InvalidInput({ message: "Dati non validi." })),
+)
+```
+
+Qui il `ParseError` di Schema (che porta i dettagli tecnici di cosa non ha rispettato lo schema) diventa un `InvalidInput` locale con solo il messaggio da mostrare all'utente: il resto della pipeline, e `runAction` alla fine, vedono sempre lo stesso tipo di errore invece di uno diverso per ogni passo che può fallire.
+
+**Non toglie niente al beneficio degli errori tipizzati.** Il tipo continua a costringere a gestire ogni fallimento — `mapError`/`catchTag` sono gli strumenti previsti per farlo, non un modo per aggirare il compilatore. Qui però il `() =>` ignora deliberatamente il `ParseError` originale invece di leggerci dentro (es. quale campo non rispettava lo schema): il tipo obbliga comunque a gestire il fallimento, ma non a farlo con la massima precisione possibile. Per un prototipo un messaggio generico basta; in un'app con più utenti attivi in parallelo, varrebbe la pena costruire il messaggio a partire dal `ParseError` invece di scartarlo.
+
+**Alternativa in TypeScript puro.** Un `if`/`else` o un `try/catch` a ogni passo che può fallire, per tradurre a mano l'errore in un messaggio prima di continuare: stesso risultato, ma ripetuto esplicitamente invece che con un operatore riusabile.
 
 ## Nei test
 

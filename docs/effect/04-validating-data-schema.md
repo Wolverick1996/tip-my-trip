@@ -103,20 +103,17 @@ Dallo schema TypeScript ricava anche il tipo, quindi descrizione a runtime e tip
 
 **Controllare un valore sconosciuto.** Le funzioni `decodeUnknown…` accettano un `unknown`, verificano che rispetti lo schema e restituiscono il valore tipizzato. Cambia solo il modo in cui segnalano il fallimento:
 
-| Funzione                                     | Se i dati non vanno bene                                                   | Usata in                                                                                                           |
-| -------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `Schema.decodeUnknownEither(schema)(valore)` | restituisce un `Either`: `Left` con un `ParseError`, `Right` con il valore | `createTripAction`: un input sbagliato diventa un messaggio d'errore per l'utente                                  |
-| `Schema.decodeUnknownSync(schema)(valore)`   | lancia un'eccezione                                                        | `readJsonFile`: un file corrotto è un guasto, e dentro `Effect.sync` diventa un defect (vedi `02-typed-errors.md`) |
-| `Schema.decode(schema)(valore)`              | restituisce un `Effect` che fallisce con `ParseError`                      | la route `GET /api/cities` (sezione sopra)                                                                         |
+- **`Schema.decodeUnknown(schema)(valore)`** — restituisce un `Effect` che fallisce con `ParseError`. Usata nelle Server Action (es. `createTripAction`): un input sbagliato è solo un altro passo che può fallire nella pipeline Effect dell'action.
+- **`Schema.decodeUnknownEither(schema)(valore)`** — il gemello sincrono: restituisce un `Either` (`Left` con un `ParseError`, `Right` con il valore) invece di un `Effect`, per quando si vuole reagire subito al risultato fuori da una pipeline Effect. Non usata oggi nel progetto.
+- **`Schema.decodeUnknownSync(schema)(valore)`** — lancia un'eccezione. Usata in `readJsonFile`: un file corrotto è un guasto, e dentro `Effect.sync` diventa un defect (vedi `02-typed-errors.md`).
+- **`Schema.decode(schema)(valore)`** — restituisce un `Effect` che fallisce con `ParseError`. Usata nella route `GET /api/cities` (sezione sopra).
 
 ```ts
-const decoded = Schema.decodeUnknownEither(CreateTripInput)(input)
-if (Either.isLeft(decoded)) {
-  return { error: "Dati del viaggio non validi." }
-}
-const { title, cityIds, expertIds } = decoded.right // tipizzati
+const { title, cityIds, expertIds } = yield* Schema.decodeUnknown(CreateTripInput)(input).pipe(
+  Effect.mapError(() => new ActionFailure({ message: "Dati del viaggio non validi." })),
+)
 ```
 
-La scelta dipende da cosa significa il fallimento in quel punto: un errore previsto da mostrare (`Either`), un guasto da non gestire (`Sync`, che lancia), o un passo dentro un programma Effect (`decode`).
+La scelta dipende da cosa significa il fallimento in quel punto: un passo dentro un programma Effect (`decodeUnknown`/`decode`, che si scarta o si mappa con `Effect.mapError` come sopra), un `Either` da gestire subito fuori da Effect (`decodeUnknownEither`), o un guasto da non gestire (`Sync`, che lancia).
 
 **Alternativa in TypeScript puro.** Controlli scritti a mano campo per campo (`typeof input.title === "string" && Array.isArray(input.cityIds) && …`), facili da dimenticare quando il tipo cambia, oppure una libreria di validazione in più. `Schema` fa già parte di `effect`.
