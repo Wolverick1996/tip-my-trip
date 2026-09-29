@@ -108,6 +108,18 @@ describe("listTrips", () => {
     expect(result[0].experts.map((expert) => expert.name)).toEqual(["Bruno", "Anna"])
   })
 
+  test("non fallisce se un esperto dello snapshot non esiste più, e il suo contatto è assente", async () => {
+    const trips = [
+      trip({
+        experts: [{ id: "e-sparito", name: "Carlo", matchedCities: [], sharedLanguages: [] }],
+      }),
+    ]
+
+    const result = await Effect.runPromise(Effect.provide(listTrips("org"), testLayer(trips)))
+
+    expect(result[0].experts[0].contact).toBeUndefined()
+  })
+
   test("restituisce i viaggi dal più recente al più vecchio", async () => {
     const trips = [
       trip({ id: "t-vecchio", createdAt: 1 }),

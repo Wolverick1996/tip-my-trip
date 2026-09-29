@@ -14,6 +14,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core"
+import { modals } from "@mantine/modals"
 import { IconAlertCircle, IconArrowLeft } from "@tabler/icons-react"
 import { useState } from "react"
 import type { CitySearchResult } from "@/app/api/cities/city-search-result"
@@ -55,6 +56,21 @@ export function AddCityModal({
     setQuery("")
   }
 
+  function requestClose() {
+    if (!selected) {
+      onClose()
+      return
+    }
+    modals.openConfirmModal({
+      title: editing ? "Scartare le modifiche?" : "Scartare questa città?",
+      children: <Text size="sm">La selezione andrà persa.</Text>,
+      labels: { confirm: "Scarta", cancel: "Annulla" },
+      cancelProps: { "data-autofocus": true },
+      confirmProps: { color: "strawberry" },
+      onConfirm: onClose,
+    })
+  }
+
   async function handleSave() {
     if (!selected || !level) {
       return
@@ -75,10 +91,10 @@ export function AddCityModal({
   return (
     <Modal
       opened
-      onClose={onClose}
+      onClose={requestClose}
       title={
         <Group gap={4} wrap="nowrap">
-          {selected && (
+          {selected && !editing && (
             <ActionIcon variant="subtle" onClick={handleBack} aria-label="Torna alla ricerca città">
               <IconArrowLeft size={18} />
             </ActionIcon>

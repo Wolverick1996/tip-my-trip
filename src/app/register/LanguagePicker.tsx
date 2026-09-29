@@ -26,6 +26,7 @@ export function LanguagePicker({
   return (
     <MultiSelect
       label={label}
+      required
       data={languageOptions}
       value={selected}
       dropdownOpened={dropdownOpened}
