@@ -73,17 +73,15 @@ export function MyWorld({ knownCities }: { knownCities: ResolvedKnownCity[] }) {
         <Stack gap="xs" mt="md">
           {knownCities.map((entry) => (
             <Card key={entry.city.id} withBorder padding="sm" bg="white">
-              <Group justify="space-between">
-                <Group gap="xs">
-                  <Text size="sm">
-                    {entry.city.name}{" "}
-                    <Text component="span" c="dimmed" inherit>
-                      — {entry.city.country}
-                    </Text>
+              <Group justify="space-between" wrap="nowrap">
+                <Text size="sm">
+                  {entry.city.name}{" "}
+                  <Text component="span" c="dimmed" inherit>
+                    — {entry.city.country}
                   </Text>
+                </Text>
+                <Group gap="xs" wrap="nowrap" className="shrink-0">
                   <ExpertiseBadge level={entry.level} />
-                </Group>
-                <Group gap="xs">
                   <ActionIcon
                     variant="subtle"
                     onClick={() => openEdit(entry)}
