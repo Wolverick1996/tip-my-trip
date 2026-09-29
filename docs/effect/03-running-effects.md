@@ -54,7 +54,7 @@ Nei **test** invece si continua a usare `Effect.provide` diretto con un `Layer` 
 
 ## `runSyncExit` ed `Exit`: tradurre il risultato in una risposta HTTP
 
-Usato per: `GET /api/cities` (`src/app/api/cities/route.ts`, con `runSyncExit`) e `GET /api/trip-matches` (`src/app/api/trip-matches/route.ts`, con `runPromiseExit`, vedi sotto "Quale funzione usare per eseguire il programma").
+Usato per: `GET /api/cities` (`src/app/api/cities/route.ts`, con `runSyncExit`), `GET /api/trip-matches` (`src/app/api/trip-matches/route.ts`, con `runPromiseExit`, vedi sotto "Quale funzione usare per eseguire il programma") e `runAction` (`src/app/lib/run-action.ts`), che fa lo stesso per le Server Action ma traduce l'esito in `{ error?: string }` invece che in una risposta HTTP.
 
 `runtime.runPromise` restituisce il valore di successo, oppure **rigetta** la Promise se l'Effect fallisce. Nelle pagine va bene: o si usa `Effect.either` per trasformare un failure in un ramo della UI, oppure si lascia che l'errore arrivi alla pagina d'errore di Next. In una route API invece ogni esito deve diventare una risposta con lo status giusto: successo → `200`, failure previsto → `400`, defect → `500`. Serve quindi il risultato completo, non solo il valore.
 
@@ -89,10 +89,10 @@ La scelta dipende da due domande:
 - **Il programma chiede servizi?** Lo dice `R` in `Effect<A, E, R>`. Se chiede un port (es. `TravelerRepository`) serve `runtime`, che contiene il `Layer`; se `R = never` basta `Effect`.
 - **Ha passi asincroni?** Se è tutto sincrono si usa `runSync…`; se c'è una Promise (una query a un database, o una funzione async come sotto), serve `runPromise…`.
 
-|               | `R = never`                          | Con servizi                                    |
-| ------------- | ------------------------------------ | ---------------------------------------------- |
-| **Sincrono**  | `Effect.runSyncExit` (`/api/cities`) | `runtime.runSyncExit`                          |
-| **Asincrono** | `Effect.runPromiseExit`              | `runtime.runPromiseExit` (`/api/trip-matches`) |
+|               | `R = never`                          | Con servizi                                                 |
+| ------------- | ------------------------------------ | ----------------------------------------------------------- |
+| **Sincrono**  | `Effect.runSyncExit` (`/api/cities`) | `runtime.runSyncExit`                                       |
+| **Asincrono** | `Effect.runPromiseExit`              | `runtime.runPromiseExit` (`/api/trip-matches`, `runAction`) |
 
 Le versioni `…Exit` non lanciano mai: restituiscono l'esito, che poi `Exit.match` traduce in status HTTP.
 

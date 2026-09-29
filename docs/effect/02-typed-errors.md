@@ -44,7 +44,7 @@ switch (error._tag) {
 }
 ```
 
-Nella pratica, in questo progetto non scriviamo `switch` di questo tipo — si usano `Either`/`catchTag`, visti più sotto in "Gestire un errore tipizzato in produzione". Qui l'idea è solo: `_tag` è ciò che rende possibile distinguere un errore dall'altro, in qualsiasi forma lo si consumi poi.
+Nella pratica, in questo progetto non scriviamo `switch` di questo tipo — si usano `Either`, `catchTag` e `mapError`, visti più sotto. Qui l'idea è solo: `_tag` è ciò che rende possibile distinguere un errore dall'altro, in qualsiasi forma lo si consumi poi.
 
 ## Distinzione importante: fallimento vs "nessun risultato"
 
@@ -81,17 +81,17 @@ Qui c'è un solo tag possibile (`TravelerNotFoundError`), quindi non serve disti
 
 ## Normalizzare più errori diversi in uno solo: `Effect.mapError`
 
-Usato per: le Server Action (`src/app/my-world/actions.ts`, `src/app/my-trips/actions.ts`), dove una singola pipeline può fallire per motivi diversi — un `ParseError` di `Schema.decodeUnknown`, un `InvalidTripError` da `createTrip` — ma chi esegue la pipeline (`runAction`, in `src/app/lib/run-action.ts`) si aspetta sempre la stessa forma di errore, senza dover conoscere ogni variante.
+Usato per: le Server Action (`src/app/my-world/actions.ts`, `src/app/my-trips/actions.ts`, `src/app/register/actions.ts`), dove una singola pipeline può fallire per motivi diversi — un `ParseError` di `Schema.decodeUnknown`, un `InvalidTripError` da `createTrip` — ma chi esegue la pipeline (`runAction`, in `src/app/lib/run-action.ts`) si aspetta sempre la stessa forma di errore, senza dover conoscere ogni variante.
 
 `Effect.mapError(effect, (errore) => nuovoErrore)` trasforma il canale errore di un `Effect<A, E, R>` in un `Effect<A, E2, R>`, applicando la funzione solo se l'Effect fallisce (se ha successo non fa nulla). A differenza di `Effect.catchTag`, che intercetta _un tag specifico_ e lascia propagare gli altri, `mapError` trasforma _qualunque_ fallimento arrivi in quel punto — utile quando, come qui, non interessa distinguere i tag ma solo portare tutto a una forma comune:
 
 ```ts
 const { cityId, level } = yield* Schema.decodeUnknown(SetKnownCityInput)(input).pipe(
-  Effect.mapError(() => new InvalidInput({ message: "Dati non validi." })),
+  Effect.mapError(() => new ActionFailure({ message: "Dati non validi." })),
 )
 ```
 
-Qui il `ParseError` di Schema (che porta i dettagli tecnici di cosa non ha rispettato lo schema) diventa un `InvalidInput` locale con solo il messaggio da mostrare all'utente: il resto della pipeline, e `runAction` alla fine, vedono sempre lo stesso tipo di errore invece di uno diverso per ogni passo che può fallire.
+Qui il `ParseError` di Schema (che porta i dettagli tecnici di cosa non ha rispettato lo schema) diventa un `ActionFailure` (l'errore condiviso delle Server Action, definito in `src/app/lib/run-action.ts`) con solo il messaggio da mostrare all'utente: il resto della pipeline, e `runAction` alla fine, vedono sempre lo stesso tipo di errore invece di uno diverso per ogni passo che può fallire.
 
 **Non toglie niente al beneficio degli errori tipizzati.** Il tipo continua a costringere a gestire ogni fallimento — `mapError`/`catchTag` sono gli strumenti previsti per farlo, non un modo per aggirare il compilatore. Qui però il `() =>` ignora deliberatamente il `ParseError` originale invece di leggerci dentro (es. quale campo non rispettava lo schema): il tipo obbliga comunque a gestire il fallimento, ma non a farlo con la massima precisione possibile. Per un prototipo un messaggio generico basta; in un'app con più utenti attivi in parallelo, varrebbe la pena costruire il messaggio a partire dal `ParseError` invece di scartarlo.
 

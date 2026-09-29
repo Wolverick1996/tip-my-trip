@@ -6,7 +6,7 @@ Stato reale del progetto: cosa è stato fatto, cosa manca. Si aggiorna solo quan
 - ✅ CI GitHub Actions: lint/test in parallelo, build a seguire.
 - ✅ `docs/product-brief.md`: problema, utenti, MVP, user journey, dominio concettuale, algoritmo di matching.
 - ✅ `docs/decisions.md`: decisioni prese finora, con motivazione.
-- ✅ `docs/effect/`: concetti Effect necessari al vertical slice, spiegati da zero (basi, dipendenze, errori tipizzati, esecuzione).
+- ✅ `docs/effect/`: concetti Effect necessari al vertical slice, spiegati da zero (basi, dipendenze, errori tipizzati, esecuzione, validazione con Schema).
 - ✅ Strategia di testing per il vertical slice discussa e approvata (non formalizzata in un doc a parte — guida per quando si scrive il codice, vedi `docs/effect/` e la sezione Testing di `AGENTS.md`).
 - ✅ `domain/`: entità (`City`, `Language`, `ExpertiseLevel`, `Traveler`, `Trip`), funzione pura `matchTravelers()` e i suoi test.
 - ✅ Port `TravelerRepository` (in `domain/`), errori tipizzati (`TravelerNotFoundError`), use case `findExpertsForCity` (in `use-cases/`, poi diventato `findExpertsForTrip`), implementazione in-memory con dati mock (in `infrastructure/`, poi sostituita dagli adapter su file) — con i rispettivi test (Layer di test per il use case, `Effect.flip` per gli errori tipizzati).

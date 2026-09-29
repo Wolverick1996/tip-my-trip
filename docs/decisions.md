@@ -88,7 +88,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   Un risultato assente non è un errore: una città non trovata è `undefined`, una ricerca senza risultati è un array vuoto (vedi `docs/effect/02-typed-errors.md`, "fallimento vs nessun risultato").
 
-  Eccezione voluta: le route lette dal client, scritte interamente con Effect per esercitare il pattern — oggi `GET /api/cities` (vedi "Ricerca città dal client") e `GET /api/trip-matches` (vedi "Viaggi").
+  Eccezione voluta: le route lette dal client e le Server Action che scrivono, scritte interamente con Effect per esercitare il pattern — oggi `GET /api/cities` (vedi "Ricerca città dal client"), `GET /api/trip-matches` (vedi "Viaggi") e le 5 Server Action.
 
 - **Moduli usati da client component: mai dipendenze, neanche indirette, dal catalogo città**
 
@@ -112,7 +112,7 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   **Perché**: prima della conversione, tre di queste action non avvolgevano la chiamata allo use case in `Effect.either`: un fallimento tipizzato (es. `TravelerNotFoundError`, profilo sparito dal repository) mandava la promise in reject invece di tornare `{ error }` — un bug, non solo un disallineamento di stile rispetto alle due route GET già scritte con Effect.
 
-  **`runAction` condiviso, a differenza delle route**: le route traducono l'esito in status HTTP diversi per tag, quindi non hanno nulla in comune da estrarre. Le 4 action condividono invece lo stesso contratto `{ error?: string }` (voce sopra): l'helper centralizza quella traduzione una sola volta, e resta semplice perché ogni action riduce prima i propri errori a `{ message: string }`, invece di fargli conoscere le forme diverse (`.reason`, `.travelerId`) dei singoli errori di dominio.
+  **`runAction` condiviso, a differenza delle route**: le route traducono l'esito in status HTTP diversi per tag, quindi non hanno nulla in comune da estrarre. Le 5 action condividono invece lo stesso contratto `{ error?: string }` (voce sopra): l'helper centralizza quella traduzione una sola volta, e resta semplice perché ogni action riduce prima i propri errori a `{ message: string }`, invece di fargli conoscere le forme diverse (`.reason`, `.travelerId`) dei singoli errori di dominio.
 
 - **Nessun `error.tsx`/`not-found.tsx`: si usano le pagine di default di Next**
 
