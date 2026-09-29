@@ -43,6 +43,18 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
 
   **Perché**: persistere lo stato corrente di un aggregato è una sola operazione, che sia la prima registrazione o una modifica. Un `update` introdurrebbe la precondizione "deve già esistere" e un nuovo errore senza significato di dominio. Gli adapter su file (vedi "Persistenza") lo implementano sostituendo il record con lo stesso id.
 
+- **`findExpertsForTrip`: `TravelerRepository.findAll()` più scan in memoria, nessun metodo di query mirato**
+
+  `findExpertsForTrip` carica tutti i traveler con `findAll()` e passa l'intero elenco a `matchTravelers`, che fa un filtro/scan lineare in `domain/matching.ts`. Il port non ha un metodo tipo `findByCityIds`.
+
+  **Perché**: lo storage reale oggi è un file JSON (`file-traveler-repository.ts`), riletto e parsato per intero a ogni operazione (`readJsonFile`/`read()`). Un metodo di query più mirato sul port non ridurrebbe questo costo: l'adapter dovrebbe comunque leggere e parsare tutto il file, e poi filtrare in memoria esattamente come fa oggi `matchTravelers` — sposterebbe solo dove avviene lo stesso scan, senza eliminarlo. Un'interfaccia di query ha senso solo quando lo storage sottostante può davvero usarla per evitare lavoro, cioè con un indice o un database.
+
+  **Scartato**: aggiungere `findByCityIds` (o simile) al port ora. Sarebbe un'astrazione prematura — un vantaggio "sulla carta" che l'adapter concreto non può al momento sfruttare.
+
+  **Limiti accettati**: `file-traveler-repository.ts` non tiene i traveler in memoria tra una richiesta e l'altra, quindi ogni matching rilegge, riparsa e rivalida l'intero file prima di poter scartare un candidato — un costo che cresce con la dimensione del file, già accettato in "Persistenza" per le scritture e qui esteso alla lettura. Oggi è irrilevante: `/api/trip-matches` viene chiamata una sola volta per viaggio creato (quando il wizard arriva allo step "esperti", vedi `CreateTripModal.tsx`), su una trentina di traveler mock.
+
+  **In produzione**: con un database indicizzato (es. per città conosciuta) dietro lo stesso port, un metodo di query che filtra lato storage (`findByCityIds` o equivalente) evita di leggere e trasferire record che non servono al match — qui il vantaggio è reale, perché la query passerebbe per I/O verso uno storage esterno invece che per un array già in memoria di processo.
+
 ## Struttura e convenzioni
 
 - **Struttura delle cartelle**
@@ -175,9 +187,9 @@ Decisioni che avrebbero potuto essere diverse e che cambiano architettura, compo
   - **Risponde con un DTO**, cioè una forma dei dati pensata per il client e separata dal modello interno: `CitySearchResult` ha solo `id`, `name` e `country`, non l'intero `City`. Sta in `city-search-result.ts`, fuori dalla route, così il client lo importa senza trascinarsi dietro il catalogo.
   - **Scritta con Effect, per scelta didattica**: query troppo lunga → `400`, eccezione imprevista → `500`. È lo schema che servirà con un database.
 
-  **In produzione** (non implementato):
+  **In produzione**:
 
-  - **Database indicizzato** al posto del catalogo in memoria: ricerca asincrona e fallibile, quindi port `CityCatalog` ed Effect negli use case, con il guasto del database come errore (es. `503`).
+  - **Database al posto del catalogo in memoria**: non per lo scan in sé (un `filter` su ~135k righe è già veloce, non è quello il collo di bottiglia). Il motivo principale è che oggi `CityId` è l'id grezzo di `all-the-cities`, e questo stesso id viene salvato in `knownCities` e nei viaggi: il servizio core dipende da una libreria di terze parti per l'identità dei propri dati di dominio, senza controllo su come quella libreria numera o rinumera le città tra una versione e l'altra. Un dataset proprio (importato una volta da GeoNames o simili, con id decisi da noi) rende la mappatura deterministica e stabile indipendentemente dagli aggiornamenti della libreria. In secondo piano risolverebbe anche i due limiti di `all-the-cities` di oggi: nomi in altre lingue solo per una trentina di città hardcoded in `CITY_NAME_OVERRIDES`, e nessun modo di correggere o arricchire i dati senza toccare il codice e rifare il deploy. Un database porterebbe anche ricerca asincrona e fallibile, quindi port `CityCatalog` ed Effect negli use case, con il guasto del database come errore (es. `503`).
   - **Rate limiting** della piattaforma o con un contatore condiviso (es. Redis): uno in memoria vale per un solo processo e non riconosce l'IP in modo affidabile.
   - **Una libreria di data fetching** lato client per richieste doppie, cache nel browser e nuovi tentativi.
   - **Osservabilità**: log strutturati, metriche, tracing.
