@@ -60,7 +60,7 @@ L'alternativa più semplice sarebbe stata nessuna architettura formale: leggere 
 
 **Compromesso**: il pattern non è applicato ovunque allo stesso modo — dati statici come il catalogo delle città, le lingue e i livelli di expertise sono esportati direttamente, senza un port dedicato, perché non hanno un'implementazione alternativa da sostituire. È una versione un po' più snella di quella "classica", più improntata alla facilità di lettura, testing e modifica.
 
-### Stack tecnologico familiare, design system pronto all'uso, UI mobile first
+### Stack tecnologico familiare, design system pronto all'uso, UI mobile-first
 
 Con Effect già come scoglio principale, il resto dello stack è una scelta deliberatamente conservativa: limitare le novità tecnologiche introdotte in parallelo concentra l'impegno di apprendimento su Effect. Per l'interfaccia è stato importato un design system (Mantine), con i suoi componenti pronti all'uso (bottoni, campi, dialog, notifiche), invece di costruirli da zero: l'alternativa sarebbe stata partire da solo Tailwind e disegnare ogni componente a mano. Per lo stesso motivo l'interfaccia è pensata come mobile-first — una sola colonna centrata, pochi breakpoint per aggiustamenti minori — invece di un layout desktop dedicato (sidebar, colonne affiancate): il caso d'uso reale (organizzare un viaggio, guardare una mappa, cercare un esperto) è quello più comune da telefono, e due layout avrebbero aggiunto complessità senza insegnare niente in più su Effect.
 
