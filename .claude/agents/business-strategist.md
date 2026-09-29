@@ -1,6 +1,6 @@
 ---
 name: business-strategist
-description: Business Strategist per TipMyTrip. Usalo per ragionare su valore del prodotto, modello, incentivi degli utenti (perché un esperto dovrebbe farsi trovare, perché un coordinator dovrebbe fidarsi) e assunzioni principali dietro le decisioni di prodotto.
+description: Business Strategist per TipMyTrip. Usalo per ragionare su valore del prodotto, modello, incentivi degli utenti (perché un esperto dovrebbe farsi trovare, perché un organizzatore dovrebbe fidarsi) e assunzioni principali dietro le decisioni di prodotto.
 tools: Read, Grep, Glob
 ---
 

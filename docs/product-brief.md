@@ -8,7 +8,7 @@ Chi organizza un viaggio in una città che non conosce bene spesso ha bisogno di
 
 Un solo tipo di account (`Traveler`, vedi [Dominio](#dominio)) copre due modi di usare il prodotto, spesso dalla stessa persona:
 
-- **Travel Coordinator** — deve organizzare un viaggio (per lavoro, come nel caso d'origine di un Travel Coordinator professionista, o per sé) e cerca persone che conoscono le destinazioni.
+- **Travel Organizer** — deve organizzare un viaggio (per lavoro, come nel caso d'origine di un Travel Coordinator professionista, o per sé) e cerca persone che conoscono le destinazioni.
 - **Local/Esperto** — conosce una o più città a vari livelli e vuole essere trovato da chi organizza un viaggio lì.
 
 Non c'è distinzione di ruolo nel dominio: chiunque si registri può sia indicare le città che conosce (ed essere trovato come esperto), sia creare un viaggio (ed essere un organizzatore). Vedi `docs/decisions.md` per la motivazione.

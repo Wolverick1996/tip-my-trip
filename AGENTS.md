@@ -9,7 +9,7 @@ TipMyTrip è un prototipo web che nasce da una necessità incontrata lavorando c
 ## Come funziona (visione)
 
 - Un utente si registra indicando le lingue che parla, le città che conosce e il livello di conoscenza di ciascuna: **Base** (ci è passato/l'ha visitata), **Expert** (ci è stato diverse volte, sa confrontare alternative), **Local** (ci vive o l'ha vissuta, può quasi costruire un itinerario). Le città conosciute si vedono come pin su una mappa.
-- Un Travel Coordinator crea un viaggio selezionando le città da visitare; il sistema trova le persone utili per quelle destinazioni.
+- Un Travel Organizer crea un viaggio selezionando le città da visitare; il sistema trova le persone utili per quelle destinazioni.
 - Il matching deve essere semplice e **spiegabile** (niente algoritmi sofisticati per ora), tenendo conto ad esempio di: città conosciute, livello di expertise, lingue in comune, quante città del viaggio conosce una persona.
 - Nessuna chat interna per l'MVP: sul profilo si mostrano icone WhatsApp/email con contatti fittizi.
 
